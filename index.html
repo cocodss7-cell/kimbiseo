@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#0F2419">
-<meta name="app-build-version" content="v3-sync-ai">
+<meta name="app-build-version" content="v4-lunar">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v3-sync-ai';</script>
+<script>window.APP_BUILD = 'v4-lunar';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -103,6 +103,7 @@ textarea{resize:vertical;min-height:90px;line-height:1.5}
 .cell .dn span{display:inline-block;min-width:24px;padding:1px 5px;border-radius:6px;text-align:center}
 .cell.today .dn span{background:var(--text);color:var(--card)}
 .cell .dn.sun{color:var(--sun)} .cell .dn.sat{color:var(--sat)}
+.cell .lun{font-size:11px;font-weight:500;font-style:normal;color:var(--sub);margin-left:4px}
 .pill{display:block;font-size:12px;font-weight:600;line-height:1.3;padding:3px 6px;border-radius:5px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pill.ev{background:var(--ev-bg);color:var(--ev-tx)}
 .pill.memo{background:var(--mm-bg);color:var(--mm-tx)}
@@ -256,6 +257,9 @@ mark{background:var(--yellow);color:#000;border-radius:3px;padding:0 1px}
 <div class="modal" id="modal" onclick="if(event.target===this)closeModal()"><div class="sheet" id="sheet"></div></div>
 <div class="toast" id="toast"></div>
 
+<script>/* korean-lunar-calendar 0.4.0 — MIT License, Copyright (c) 2022 Jinil Lee — 한국천문연구원 기준 음력↔양력 (1000~2050년) */
+(function(e,t){typeof exports==`object`&&typeof module<`u`?module.exports=t():typeof define==`function`&&define.amd?define([],t):(e=typeof globalThis<`u`?globalThis:e||self,e.KoreanLunarCalendar=t())})(this,function(){var e={KOREAN_LUNAR_MIN_VALUE:10000101,KOREAN_LUNAR_MAX_VALUE:20501118,KOREAN_SOLAR_MIN_VALUE:10000213,KOREAN_SOLAR_MAX_VALUE:20501231,KOREAN_LUNAR_BASE_YEAR:1e3,SOLAR_LUNAR_DAY_DIFF:43,LUNAR_SMALL_MONTH_DAY:29,LUNAR_BIG_MONTH_DAY:30,SOLAR_SMALL_YEAR_DAY:365,SOLAR_BIG_YEAR_DAY:366,SOLAR_DAYS:[31,28,31,30,31,30,31,31,30,31,30,31,29],KOREAN_CHEONGAN:[44049,51012,48337,51221,47924,44592,44221,49888,51076,44228].map(e=>String.fromCharCode(e)),KOREAN_GANJI:[51088,52629,51064,47896,51652,49324,50724,48120,49888,50976,49696,54644].map(e=>String.fromCharCode(e)),KOREAN_GAPJA_UNIT:[45380,50900,51068].map(e=>String.fromCharCode(e)),CHINESE_CHEONGAN:[30002,20057,19993,19969,25098,24049,24218,36763,22764,30328].map(e=>String.fromCharCode(e)),CHINESE_GANJI:[23376,19985,23493,21359,36784,24051,21320,26410,30003,37193,25100,20133].map(e=>String.fromCharCode(e)),CHINESE_GAPJA_UNIT:[24180,26376,26085].map(e=>String.fromCharCode(e)),INTERCALATION_STR:[50980,38287].map(e=>String.fromCharCode(e)),KOREAN_LUNAR_DATA:[2194016855,2197734699,2193886506,2194017621,3271595437,2193884522,2194016621,2197837021,3267626157,2193885773,2197827149,2193885990,3271600982,2194016981,2193883994,2197842298,3267758427,2193884315,2197834395,2193885771,3271674533,2193884842,2194016981,2197852893,3267625653,2194016599,2197705902,2194017431,3267626571,2197759306,2194017705,2197857974,3267757677,2193883758,2197907758,2193885486,3267628182,2197835157,2193886538,2197867881,3267627864,2194148715,2197918315,2193883741,3267627307,2197838507,2193885845,2193886026,3271696043,2193883861,2197927258,2194015419,3267625563,2197845303,2193884459,2193884821,3271571285,2193884842,2198063797,2193883765,3267626166,2197850718,2193885782,2193886502,3271581350,2194017621,2193884586,2197822826,3267758445,2197861551,2193884317,2193885773,3271589165,2193885862,2194017109,2197833173,3267625818,2194016605,2197885299,2193884251,3271596623,2193884747,2193885861,2197842793,3267757749,2193883866,2197826230,2194016567,3271476375,2194017431,2193884747,2197718698,3267759525,2193884596,2198030957,2193883822,3267628641,2197826862,2193886358,2197855565,2193886538,2194017637,2197906837,2194015581,3267625581,2197826141,2193885483,2197858967,3267627669,2193886026,2197850970,2194016981,3267757403,2197832375,2193884247,2193884459,3271564587,2193884821,2197853997,2193884586,3267758773,2197837037,2193884342,2194016855,3271504974,2193886502,2197929618,2194017621,3267626410,2197850554,2194016621,2193884334,3271576221,2193885773,2193886501,2197827365,3267627860,2198056297,2193883866,2194016605,3271648411,2193884315,2193885771,2197834571,3267626661,2197863251,2193884852,2194016950,3271657814,2194016663,2193884311,2197833367,3267626315,2197735077,2194017701,2193884588,3271797429,2193883758,2193885486,2197843118,3267628182,2193886538,2197827402,2194017621,3271603563,2194015579,2193883741,2197846333,3267627303,2193885845,2197904661,2193886026,3267758933,2197885653,2194015451,2197721694,3267758679,2193884459,2197842603,2193884821,3267626666,2197830570,2194016949,2197861559,3267626158,2194016855,2197714222,2193886502,3267759763,2197837525,2193884586,2194016693,3271566701,2193884334,2197924429,2193885773,3267628326,2197843301,2193886034,2194017642,3271567066,2194016605,2197931165,2193884315,3267627595,2197850795,2193884837,2193886036,3271576500,2194016950,2194016603,2197824823,3267626135,2197853775,2193884491,2193884837,3271653061,2193884588,2194016950,2197895278,3267627310,2197867671,2193886358,2193886538,3271593386,2194017109,2193884522,2197969627,3267625565,2193885486,2197826859,2193885845,3271597389,2193885994,2194017109,2197845365,3267626202,2194016859,2197833047,2193884459,3271674515,2193884819,2193884842,2197850842,3267758821,2193884342,2197834414,2194016855,3267626279,2197759270,2194017875,2197857995,3267626410,2194015661,2197906605,2193884334,3267627598,2197835085,2193886502,2197863763,3267627858,2194017130,2197919082,2194015575,3267626141,2197903899,2193885771,2193885861,3271564965,2193886034,2197863258,2194016950,3267758427,2197841079,2193884311,2193884747,3271571275,2193884837,2197862067,2193884588,3267758774,2197914285,2193884318,2193885773,3271581003,2193885989,2193886034,2197892690,3267758938,2197858654,2194016603,2193884315,3271584343,2193885771,2193885861,2197834661,3267626708,2197867222,2194016950,2194016567,2197849247,2193884311,2193884747,2197706442,3267759525,2193884586,2197822828,2194016878,3271604527,2193885486,2193886358,2197847381,3267628362,2194017621,2197894485,2193884522,3267758701,2197822045,2193885483,2197850715,3267627669,2193885994,2197904170,2194016981,3267626202,2197822650,2194016855,2197853487,3267626279,2193884819,2197845683,2193884842,3267758773,2197828981,2193884342,2197867111,3267627566,2193886486,2197851798,2193886538,3267759530,2197837290,2194015597,2193884334,3271632989,2193885741,2197859607,2193885861,3267627858,2197847412,2194016986,2194015581,3271570747,2193884251,2193885739,2197887531,3267627685,2197855061,2193884850,2194016982,3271644470,2194016567,2193884247,2197830231,3267626283,2197727910,2194017685,2193884586,3271654060,2194016878,2193884462,2197830830,3267627606,2197863723,2193886506,2194017621,3271595437,2193884522,2194016877,2197837149,3267626283,2193885837,2197827157,2193885994,3271600982,2194016981,2193884378,2197842554,3267758679,2193884443,2197899799,2193884755,3271673513,2193884586,2194016949,2197852861,3267625654,2194016823,2197706030,2193886486,2194017867,2197698386,2194017706,2197927348,3267757421,2193883822,2197846589,2193885741,3267628309,2197835157,2193886034,2197867369,3267758810,2194015581,2197918299,2193884251,3267627563,2197838507,2193885845,2193886034,3271564970,2194016950,2197865819,2194015415,3267626071,2197845303,2193884459,2193884821,3271640725,2193884586,2197867189,2194016878,3267626158,2197850718,2193885782,2193886506,3271585450,2194017621,2193884522,2197891418,3267758429,2197861551,2193884315,2193885773,3271589165,2193885994,2194017109,2197833173,3267625690,2194016603,2197885271,2193884315,3271596623,2193884747,2193884841,2197842666,3267757749,2193883830,2197826222,2194016567,3271537814,2193886358,2194017867,2197714610,3267759530,2194015661,2197828461,2193883758,3267627310,2197826861,2193886357,2197855565,3267627850,2194017129,2197906778,2194015579,3267625565,2197826139,2193885483,2197858967,3267626645,2193885002,2197850970,2194016950,3267757371,2197832375,2193883735,2193884459,3271564587,2193884821,2197853869,2193884586,3267758773,2197837037,2193884334,2194016855,3271504974,2193886506,2197929364,2194017109,2193884522,2197846394,2194016605,2193884334,3271576219,2193885773,2193886501,2197887658,3267758933,2197853549,2193883866,2194016603,3271578807,2193884311,2193885771,2197834571,3267626665,2197867221,2194015669,2193883830,3271592286,2194016559,2193884311,2197702294,3267628362,2197868197,2194017641,2194015597,3271664309,2193883758,2193885486,2197843117,3267628181,2193886538,2197827402,2194017113,3271607661,2194015579,2193883741,2197846331,3267627307,2193885845,2197904149,2193884874,3267758805,2197885622,2194015419,2197852767,3267625559,2193884459,2197711530,2194017941,3267626666,2197830570,2194016949,2197861559,3267626158,2194016855,2197714221,2193886502,3267759509,2197837269,2193884522,2194016621,3271566685,2193884334,2197858895,2193885773,3267628325,2197843305,2194017109,2193883994,3271568058,2194016603,2197931163,2193884311,3267627595,2197850923,2193884837,2193884884,3271772853,2193883830,2194016567,2197824815,3267626135,2197722702,2193886538,2194017957,3271648937,2194015597,2193883830,2197895262,3267627310,2197863575,2193885845,2193886538,3271593386,2194017101,2194015595,2197832411,3267625565,2193885485,2197826859,2193885845,3271596877,2193884842,2194016981,2197841269,3267757243,2193883739,2197894231,2193884459,3271539348,2194017941,2193884842,2197850842,3267758517,2193884342,2197834414,2194016847,3267495206,2197892390,2194017621,2197923241,3267626346,2194016621,2197906589,2193884318,3267627597,2197835085,2193886501,2197863763,3267627860,2194017114,2197915994,2194016603,3267626139,2197834391,2193885771,2193885861,3271564965,2193884884,2197994203,2193883830,3267758391,2197841071,2193884311,2193884747,3271440202,2194017701,2197862069,2194015597,3267625646,2197846334,2193885486,2193886358,3271646485,2193886538,2194017701,2197894485,3267626346,2197846650,2194016861,2193885485,3271584427,2193885845,2193886026,2197834666,3267758805,2193884506,2197891258,2194016859,3271587127,2193884459,2193884819,2197903125,3267626666,2194016981,2197829045,2193884342,3271592542,2193885774,2193886502,2197843622,3267628370,2194017706,2197898858,2194015597,3267626158,2197830301,2193885773,2197847339,3267627813,2193886546,2197904724,2194017114,3267757405,2197828955,2193884315,2197845591,2193885771,2193885861,2197842789,2193884882,3267758810,2197833142,2194016567,2193884311,3271571095,2193884749,2197714602,2194017701,3267626410,2197838572,2194016942,2193885486,3271572782,2193886358,2197916997,2193886538,3267759445,2197906837,2193884522,2194016877,3271574877,2193884461,2193885845,2197896341,3267627850,2197912394,2194016981,2193884506,3271645754,2194016859,2193884459,2197899799,3267626643,2197853867,2193884842,2194016949,3271582965,2193884342,2194016855,2197701934,3267628310,2194017939,2197698386,2194017706,3271652778,2194015597,2193884334,2197903901,3267627565,2193886485,2197835173,2193886034,3271597418,2194016986,2194015581,2197906075,3267626075,2193885739,2197838635,2193885845,3267627858,2197891762,2194016982,2197910870,3267757367,2193884247,2197837399,2193884459,3267626645,2197829525,2193884586,2197858998,3267758701,2193884334,2197842542,2193885782,3267628330,2197839530,2194017621,2193884586,3271572330,2194016877,2197845181,2193884331,3267627661,2197839189,2193885994,2194017109,3271574997,2193884378,2194016605,2197824855,3267626139,2197842583,2193884747,2193884841,2197834666,2194015925,2193883834,2197826230,3267758391,2197710126,2193886486,2194017867,3271448274,2194017705,2194015669,2197828461,3267625646,2193885742,2197827117,2193886357,3271585109,2193886034,2194017129,2197833178,3267757405,2193883741,2197830235,2193885739,3271654027,2193885845,2193886026,2197904170,3267758805,2194015579,2197832375,2193883735,3271595311,2193884459,2193884821,2197841621,3267626410,2194016949,2197833069,2193884334,3267758679,2197763158,2193886506,2197913226,3267759445,2193884586,2197838554,2194016605,3267626158,2197834411,2193885773,2197851435,3267627817,2194017109,2197845365,2193883866,3267758429,2197837015,2193884315,2193885771,3271637579,2193884841,2197850841,2194015925,3267625654,2197903670,2194016567,2193884311,3271444118,2193886794,2197860006,2194017705,3267757485,2197906093,2193883822,2193885486,3271580845,2193886357,2193886538,2197896522,3267758953,2197845370,2194015579,2193883741,3271579995,2193885483,2193885845,2197835157,3267627850,2194017109,2197825237,2194015579,3271582327,2193883735,2193884459,2197707434,3267759765,2193884842,2197830570,2194016949,2197849277,2193884334,2194016855,2197706061,3267628326,2194017685,2197898837,2193884522,3267758509,2197824861,2193884334,2197842523,3267627597,2193886501,2197839273,2194017109,3267626346,2197826266,2194016605,2197845179,3267626139,2193885771,2197838667,2193884841,3267627732,2197965749,2193883830,2194016603,3271566647,2193884311,2197710422,2193886794,3267759781,2197903017,2194015669,2193883830,3271637166,2193885486,2197912717,2193886357,3267628362,2197908874,2194017129,2194015597,3271639643,2193883741,2193885485,2197826859,3267627669,2197847381,2193886026,2194017109,3271644501,2194015451,2193883739,2197895255,3267626283,2197850779,2193884821,2193884842,3271584490,2194016949,2193884342,2197834414,3267758679,2193884455,2197698342,2194017685,3271587509,2193884522,2194016685,2197837021,3267626158,2193885774,2197835085,2193886501,3271593305,2193886036,2194017642,2197907802,3267758427,2193884315,2197834395,2193885771,3271600935,2193884837,2193884884,2197973877,3267625654,2194016603,2197836983,2193884311,3267626571,2197698378,2194017957,2197849817,3267757485,2193883830,2197838190,2193885486,3267628182,2197835413,2193886538,2194017701,3271567189,2193884524,2197977787,2193883741,3267627309,2197839019,2193885845,2193886026,3271637834,2194017109,2197853533,2193884346,3267758683,2197837143,2193884459,2193885845,3271576469,2193884842,2194016981,2197825205,3267626166,2197842542,2194016855,2193884455,3271448230,2194017683,2193884586,2197830506,3267758445,2197861551,2193884334,2193885773,3271650573,2193886501,2193886546,2197839316,3267758954,2194016621,2197824859,2193884315,3271588439,2193885771,2193885989,2197904165,3267626708,2194016986,2197895350]},t={YEAR_CHEONGAN:6,YEAR_GANJI:0,MONTH_CHEONGAN:3,MONTH_GANJI:1,DAY_CHEONGAN:4,DAY_GANJI:2};return class{constructor(){this.cumulativeLunarYearDays=new Map,this.cumulativeSolarYearDays=new Map,this.solarCalendar={year:0,month:0,day:0},this.lunarCalendar={year:0,month:0,day:0,intercalation:!1};let e=new Date;this.setSolarDate(e.getFullYear(),e.getMonth()+1,e.getDate())}getLunarData(t){return e.KOREAN_LUNAR_DATA[t-e.KOREAN_LUNAR_BASE_YEAR]}getLunarIntercalationMonth(e){return e>>12&15}getLunarYearDays(e){return this.getLunarData(e)>>17&511}getLunarMonthDays(t,n,r){let i=this.getLunarData(t);return(r&&this.getLunarIntercalationMonth(i)===n?(i>>16&1)>0:(i>>12-n&1)>0)?e.LUNAR_BIG_MONTH_DAY:e.LUNAR_SMALL_MONTH_DAY}getLunarDaysBeforeBaseYear(e){return this.accumulateYearDays(e,this.cumulativeLunarYearDays,e=>this.getLunarYearDays(e))}getLunarDaysBeforeBaseMonth(t,n,r){let i=0;if(t>=e.KOREAN_LUNAR_BASE_YEAR&&n>0){for(let e=1;e<n+1;e++)i+=this.getLunarMonthDays(t,e,!1);if(r){let e=this.getLunarIntercalationMonth(this.getLunarData(t));e>0&&e<n+1&&(i+=this.getLunarMonthDays(t,e,!0))}}return i}getLunarAbsDays(e,t,n,r){let i=this.getLunarDaysBeforeBaseYear(e-1)+this.getLunarDaysBeforeBaseMonth(e,t-1,!0)+n;return r&&this.getLunarIntercalationMonth(this.getLunarData(e))===t&&(i+=this.getLunarMonthDays(e,t,!1)),i}isSolarIntercalationYear(e){return(e>>30&1)>0}getSolarYearDays(t){return this.isSolarIntercalationYear(this.getLunarData(t))?e.SOLAR_BIG_YEAR_DAY:e.SOLAR_SMALL_YEAR_DAY}getSolarMonthDays(t,n){return n===2&&this.isSolarIntercalationYear(this.getLunarData(t))?e.SOLAR_DAYS[12]:e.SOLAR_DAYS[n-1]}getSolarDaysBeforeBaseYear(e){return this.accumulateYearDays(e,this.cumulativeSolarYearDays,e=>this.getSolarYearDays(e))}accumulateYearDays(t,n,r){let i=n.get(t);if(i!==void 0)return i;let a=e.KOREAN_LUNAR_BASE_YEAR,o=n.get(t-1),s=0;if(o!==void 0&&t>a)s=o+r(t);else for(let e=a;e<t+1;e++)s+=r(e);return n.set(t,s),s}getSolarDaysBeforeBaseMonth(e,t){let n=0;for(let r=1;r<t+1;r++)n+=this.getSolarMonthDays(e,r);return n}getSolarAbsDays(t,n,r){return this.getSolarDaysBeforeBaseYear(t-1)+this.getSolarDaysBeforeBaseMonth(t,n-1)+r-e.SOLAR_LUNAR_DAY_DIFF}setSolarDateByLunarDate(e,t,n,r){let i=this.getLunarAbsDays(e,t,n,r),a=i<this.getSolarAbsDays(e+1,1,1)?e:e+1,o=0,s=0;for(let e=12;e>0;e--){let t=this.getSolarAbsDays(a,e,1);if(i>=t){o=e,s=i-t+1;break}}this.solarCalendar={year:a,month:o,day:s}}setLunarDateBySolarDate(e,t,n){let r=this.getSolarAbsDays(e,t,n),i=r>=this.getLunarAbsDays(e,1,1,!1)?e:e-1,a=0,o=0,s=!1;for(let e=12;e>0;e--)if(r>=this.getLunarAbsDays(i,e,1,!1)){a=e,this.getLunarIntercalationMonth(this.getLunarData(i))===e&&(s=r>=this.getLunarAbsDays(i,e,1,!0)),o=r-this.getLunarAbsDays(i,a,1,s)+1;break}this.lunarCalendar={year:i,month:a,day:o,intercalation:s}}checkValidDate(t,n,r,i,a){let o=!1;if(!Number.isInteger(r)||!Number.isInteger(i)||!Number.isInteger(a))return!1;let s=r*1e4+i*100+a;if((t?e.KOREAN_LUNAR_MIN_VALUE:e.KOREAN_SOLAR_MIN_VALUE)<=s&&(t?e.KOREAN_LUNAR_MAX_VALUE:e.KOREAN_SOLAR_MAX_VALUE)>=s&&i>0&&i<13&&a>0){if(t&&n&&this.getLunarIntercalationMonth(this.getLunarData(r))!==i)return!1;let e=t?this.getLunarMonthDays(r,i,n):this.getSolarMonthDays(r,i);if(!t&&r===1582&&i===10&&a>4&&a<15)return!1;a<=e&&(o=!0)}return o}setLunarDate(e,t,n,r){let i=!1;return this.checkValidDate(!0,r,e,t,n)&&(this.lunarCalendar={year:e,month:t,day:n,intercalation:r&&this.getLunarIntercalationMonth(this.getLunarData(e))===t},this.setSolarDateByLunarDate(e,t,n,r),i=!0),i}setSolarDate(e,t,n){let r=!1;return this.checkValidDate(!1,!1,e,t,n)&&(this.solarCalendar={year:e,month:t,day:n},this.setLunarDateBySolarDate(e,t,n),r=!0),r}computeGapJa(){let n=this.lunarCalendar,r=this.getLunarAbsDays(n.year,n.month,n.day,!!n.intercalation);if(r<=0)return{cheongan:{year:0,month:0,day:0},ganji:{year:0,month:0,day:0}};let i=e.KOREAN_LUNAR_BASE_YEAR,a=e.KOREAN_CHEONGAN.length,o=e.KOREAN_GANJI.length,s=n.month+12*(n.year-i);return{cheongan:{year:(n.year+t.YEAR_CHEONGAN-i)%a,month:(s+t.MONTH_CHEONGAN)%a,day:(r+t.DAY_CHEONGAN)%a},ganji:{year:(n.year+t.YEAR_GANJI-i)%o,month:(s+t.MONTH_GANJI)%o,day:(r+t.DAY_GANJI)%o}}}getGapJaIndex(){return this.computeGapJa()}getGapja(t){let n=this.getGapJaIndex(),r=t?e.CHINESE_CHEONGAN:e.KOREAN_CHEONGAN,i=t?e.CHINESE_GANJI:e.KOREAN_GANJI,a=t?e.CHINESE_GAPJA_UNIT:e.KOREAN_GAPJA_UNIT,o=t?`${e.INTERCALATION_STR[1]}${e.CHINESE_GAPJA_UNIT[1]}`:`${e.INTERCALATION_STR[0]}${e.KOREAN_GAPJA_UNIT[1]}`;return{year:`${r[n.cheongan.year]}${i[n.ganji.year]}${a[0]}`,month:`${r[n.cheongan.month]}${i[n.ganji.month]}${a[1]}`,day:`${r[n.cheongan.day]}${i[n.ganji.day]}${a[2]}`,intercalation:this.lunarCalendar.intercalation?o:``}}getKoreanGapja(){return this.getGapja()}getChineseGapja(){return this.getGapja(!0)}getLunarCalendar(){return{...this.lunarCalendar}}getSolarCalendar(){return{...this.solarCalendar}}}});
+</script>
 <script>
 'use strict';
 /* =========================================================
@@ -323,8 +327,46 @@ function fmtTime(t){
 }
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+// ---------- 음력 ----------
+const LUNAR = (typeof KoreanLunarCalendar === 'function') ? new KoreanLunarCalendar() : null;
+function solarToLunar(s){ // 'YYYY-MM-DD' → {year, month, day, intercalation}
+  if(!LUNAR) return null;
+  const d = parseYmd(s);
+  if(!LUNAR.setSolarDate(d.getFullYear(), d.getMonth()+1, d.getDate())) return null;
+  return LUNAR.getLunarCalendar();
+}
+function lunarToSolar(y, m, d){ // 그해에 30일이 없는 달이면 29일로
+  if(!LUNAR) return null;
+  let ok = LUNAR.setLunarDate(y, m, d, false);
+  if(!ok && d === 30) ok = LUNAR.setLunarDate(y, m, 29, false);
+  if(!ok) return null;
+  const c = LUNAR.getSolarCalendar();
+  return new Date(c.year, c.month - 1, c.day);
+}
+function lunarLabel(s){ const l = solarToLunar(s); return l ? (l.intercalation ? '윤' : '') + l.month + '.' + l.day : ''; }
+function ymdParts(s){ const [y, m, d] = String(s).split('-').map(Number); return {y, m, d}; }
+
 // ---------- D-day 계산 ----------
-// kind: since = 그날부터 N일째(1일부터 셈) / until = 그날까지 D-N / yearly = 매년 반복
+// kind: since = 그날부터 N일째(1일부터 셈) / until = 그날까지 D-N / yearly = 매년 반복(lunar면 음력 날짜, noYear면 연도 모름)
+// 매년 반복은 해마다 그해 양력 날짜를 새로 계산 (음력 기념일 포함)
+function yearlyNext(x, from){
+  const b = ymdParts(x.date);
+  if(x.lunar){
+    for(let y = from.getFullYear() - 1; y <= from.getFullYear() + 1; y++){
+      const sd = lunarToSolar(y, b.m, b.d);
+      if(sd && sd >= from) return sd;
+    }
+    return null;
+  }
+  let nx = new Date(from.getFullYear(), b.m - 1, b.d);
+  if(nx < from) nx = new Date(from.getFullYear() + 1, b.m - 1, b.d);
+  return nx;
+}
+function ddDateLabel(x){
+  const b = ymdParts(x.date);
+  if(x.kind === 'yearly') return (x.lunar ? '매년 음력 ' : '매년 양력 ') + b.m + '월 ' + b.d + '일' + (x.noYear ? '' : ' (' + b.y + '년부터)');
+  return fmtDate(x.date, true);
+}
 function ddayInfo(x){
   const today = parseYmd(todayYmd());
   const base = parseYmd(x.date);
@@ -347,12 +389,15 @@ function ddayInfo(x){
             next: nx.label + ' · ' + fmtDate(ymd(nx.date), true) + (left === 0 ? ' · 오늘!' : ' · D-' + left), soon: left};
   }
   if(x.kind === 'yearly'){
-    let nx = new Date(today.getFullYear(), base.getMonth(), base.getDate());
-    if(nx < today) nx = new Date(today.getFullYear() + 1, base.getMonth(), base.getDate());
+    const nx = yearlyNext(x, today);
+    if(!nx) return {big: '—', sub: ddDateLabel(x), next: '음력 계산 범위 밖(2050년까지)', soon: null};
     const left = dayDiff(today, nx);
-    const times = nx.getFullYear() - base.getFullYear();
-    return {big: left === 0 ? '오늘!' : 'D-' + left, sub: '매년 ' + (base.getMonth()+1) + '월 ' + base.getDate() + '일',
-            next: fmtDate(ymd(nx), true) + (times > 0 ? ' · ' + times + '번째' : ''), soon: left};
+    const s = ymd(nx), lun = lunarLabel(s);
+    const b = ymdParts(x.date);
+    const yearOf = x.lunar ? ((solarToLunar(s) || {}).year || nx.getFullYear()) : nx.getFullYear();
+    const times = x.noYear ? 0 : yearOf - b.y;
+    return {big: left === 0 ? '오늘!' : 'D-' + left, sub: ddDateLabel(x),
+            next: fmtDate(s, true) + (lun ? ' · 음 ' + lun : '') + (times > 0 ? ' · ' + times + '번째' : ''), soon: left};
   }
   // until
   const left = dayDiff(today, base);
@@ -377,13 +422,19 @@ function parseCommand(raw){
 
   const take = re => { const m = t.match(re); if(m){ t = t.replace(m[0], ' '); } return m; };
   let m;
+  // 음력·기념일 표시
+  const isLunar = !!take(/음력\s*(으로|로)?/);
+  const ddWord = intent !== 'find' && intent !== 'memo' ? (t.match(/생일|생신|기념일|사귄|태어난/) || [])[0] : null;
+  let raw3 = null; // 숫자로 말한 날짜 그대로 {y, m, d, hasYear}
 
   // 날짜: 2026-10-16 / 2026.10.16 / 2026년 10월 16일
   if(m = take(/(\d{4})\s*[.\-\/년]\s*(\d{1,2})\s*[.\-\/월]\s*(\d{1,2})\s*일?/)){
     date = new Date(+m[1], +m[2]-1, +m[3]);
+    raw3 = {y: +m[1], m: +m[2], d: +m[3], hasYear: true};
   } else if(m = take(/(\d{1,2})\s*월\s*(\d{1,2})\s*일/)){
     date = new Date(today.getFullYear(), +m[1]-1, +m[2]);
-    if(dayDiff(date, today) > 60){ date.setFullYear(date.getFullYear()+1); notes.push('내년으로 이해'); }
+    raw3 = {y: today.getFullYear(), m: +m[1], d: +m[2], hasYear: false};
+    if(!ddWord && !isLunar && dayDiff(date, today) > 60){ date.setFullYear(date.getFullYear()+1); notes.push('내년으로 이해'); }
   } else if(m = take(/(?:^|\s)(\d{1,2})\/(\d{1,2})(?=\s)/)){
     date = new Date(today.getFullYear(), +m[1]-1, +m[2]);
     if(dayDiff(date, today) > 60){ date.setFullYear(date.getFullYear()+1); notes.push('내년으로 이해'); }
@@ -433,6 +484,18 @@ function parseCommand(raw){
 
   if(intent === 'find') return {kind:'find', query: title || raw.trim()};
   if(!title) title = raw.trim();
+  // 기념일: "엄마 생일 음력 3월 5일", "결혼기념일 2020년 5월 23일", "사귄 날 2024-03-01"
+  if(ddWord && raw3 && raw3.m >= 1 && raw3.m <= 12 && raw3.d >= 1 && raw3.d <= (isLunar ? 30 : 31)){
+    const since = /사귄|태어난/.test(ddWord) && !isLunar && raw3.hasYear;
+    return {kind:'dday', title, ddKind: since ? 'since' : 'yearly', lunar: !since && isLunar, noYear: !raw3.hasYear,
+            date: raw3.y + '-' + pad(raw3.m) + '-' + pad(raw3.d), notes};
+  }
+  // 음력 일정: "음력 9월 15일 제사" → 그해 양력 날짜로
+  if(isLunar && raw3 && date){
+    let sd = lunarToSolar(raw3.y, raw3.m, raw3.d);
+    if(sd && !raw3.hasYear && dayDiff(sd, today) > 60) sd = lunarToSolar(raw3.y + 1, raw3.m, raw3.d);
+    if(sd){ date = sd; notes.push('음력 ' + raw3.m + '월 ' + raw3.d + '일 → 양력 ' + (sd.getMonth()+1) + '월 ' + sd.getDate() + '일'); }
+  }
   if(date && intent !== 'memo'){
     return {kind:'event', date: ymd(date), time, title, notes};
   }
@@ -485,7 +548,10 @@ function ddaysOnDate(s){ // 그날이 기념일인 D-day
   ddays().forEach(x => {
     const b = parseYmd(x.date);
     if(x.kind === 'until' && x.date === s) out.push({x, label: x.title});
-    if(x.kind === 'yearly' && b.getMonth() === d.getMonth() && b.getDate() === d.getDate() && d >= b) out.push({x, label: x.title});
+    if(x.kind === 'yearly'){
+      const nx = yearlyNext(x, d); // 그날 이후 첫 기념일이 그날이면
+      if(nx && ymd(nx) === s && (x.noYear || nx >= b)) out.push({x, label: x.title});
+    }
     if(x.kind === 'since'){
       const n = dayDiff(b, d) + 1;
       if(n > 1 && n % 100 === 0) out.push({x, label: x.title + ' ' + n + '일'});
@@ -517,7 +583,7 @@ function renderCal(){
     const dd = ddaysOnDate(s);
     const cls = ['cell']; if(d.getMonth() !== viewM) cls.push('other'); if(s === tday) cls.push('today'); if(s === selDate) cls.push('sel');
     const dn = d.getDay() === 0 ? ' sun' : d.getDay() === 6 ? ' sat' : '';
-    h += '<div class="' + cls.join(' ') + '" onclick="selectDate(\'' + s + '\')"><div class="dn' + dn + '"><span>' + d.getDate() + '</span></div>';
+    h += '<div class="' + cls.join(' ') + '" onclick="selectDate(\'' + s + '\')"><div class="dn' + dn + '"><span>' + d.getDate() + '</span>' + (isNarrow() ? '' : '<i class="lun">' + lunarLabel(s) + '</i>') + '</div>';
     let pills = [];
     if(calShow.dday) pills = pills.concat(dd.map(o => '<span class="pill dd">' + esc(o.label) + '</span>'));
     if(calShow.event) pills = pills.concat(ev.map(x => '<span class="pill ev">' + (x.time && !isNarrow() ? x.time.replace(/^0/,'') + ' ' : '') + esc(x.title) + '</span>'));
@@ -532,7 +598,9 @@ function renderCal(){
 function sideHtml(){
   const {ev, mm} = itemsOnDate(selDate);
   const dd = ddaysOnDate(selDate);
-  let h = '<h3>' + fmtDateLong(selDate) + '</h3>'
+  const sl = solarToLunar(selDate);
+  let h = '<h3 style="margin-bottom:2px">' + fmtDateLong(selDate) + '</h3>'
+    + '<div class="muted" style="margin-bottom:12px">' + (sl ? '음력 ' + (sl.intercalation ? '윤' : '') + sl.month + '월 ' + sl.day + '일' : '') + '</div>'
     + '<div class="row" style="margin-bottom:12px"><button class="btn sec sm" onclick="editEvent(null,\'' + selDate + '\')">+ 일정</button>'
     + '<button class="btn sec sm" onclick="editMemo(null,\'' + selDate + '\')">+ 메모</button></div>';
   if(!ev.length && !mm.length && !dd.length) h += '<div class="empty" style="padding:14px 0">이 날은 비어 있어요.</div>';
@@ -577,6 +645,7 @@ function toggleMemo(id){ const x = DB.items.find(i => i.id === id); if(x){ x.don
 
 // ---------- D-day ----------
 const DD_KIND = {since:'그날부터', until:'남은 날', yearly:'매년'};
+function ddKindLabel(x){ return x.kind === 'yearly' ? (x.lunar ? '매년 · 음력' : '매년 · 양력') : DD_KIND[x.kind || 'since']; }
 function renderDday(){
   const list = ddays().map(x => ({x, i: ddayInfo(x)})).sort((a, b) => (a.i.soon ?? 9999) - (b.i.soon ?? 9999));
   let h = '<div class="panel">' + panelHead('D-day', '사귄 날·아이 생일·기념일·시험일', '<button class="btn pri sm" onclick="editDday(null)">추가</button>');
@@ -584,7 +653,7 @@ function renderDday(){
   h += '<div class="dd-grid">';
   list.forEach(({x, i}) => {
     h += '<div class="dcard" onclick="editDday(\'' + x.id + '\')">'
-      + '<div class="dk">' + DD_KIND[x.kind || 'since'] + '</div>'
+      + '<div class="dk">' + ddKindLabel(x) + '</div>'
       + '<div class="t">' + esc(x.title) + '</div><div class="big">' + esc(i.big) + '</div>'
       + '<div class="muted">' + esc(i.sub) + '</div>'
       + (i.next ? '<div class="nx"><span class="tag dd">다음</span>' + esc(i.next) + '</div>' : '') + '</div>';
@@ -628,7 +697,7 @@ let aiFind = {q:'', busy:false, answer:'', ids:[], failed:false};
 function findCard(x, q){
   if(x.type === 'event') return '<div class="mcard" onclick="editEvent(\'' + x.id + '\')"><div style="flex:1;min-width:0"><div><span class="tag ev">일정</span><span class="muted">' + fmtDate(x.date) + (x.time ? ' ' + fmtTime(x.time) : '') + '</span></div><div class="mtext" style="font-weight:700;margin-top:4px">' + hl(x.title, q) + '</div>' + (x.note ? '<div class="mtext muted">' + hl(x.note, q) + '</div>' : '') + '</div></div>';
   if(x.type === 'memo') return '<div class="mcard" onclick="editMemo(\'' + x.id + '\')"><div style="flex:1;min-width:0"><div><span class="tag memo">메모</span><span class="muted">' + (x.date ? fmtDate(x.date) + ' · ' : '') + new Date(x.created).toLocaleDateString('ko-KR') + '</span></div><div class="mtext" style="margin-top:4px">' + hl(x.text, q) + '</div></div></div>';
-  return '<div class="mcard" onclick="editDday(\'' + x.id + '\')"><div style="flex:1;min-width:0"><div><span class="tag dd">D-day</span><span class="muted">' + fmtDate(x.date, true) + '</span></div><div class="mtext" style="font-weight:700;margin-top:4px">' + hl(x.title, q) + '</div></div></div>';
+  return '<div class="mcard" onclick="editDday(\'' + x.id + '\')"><div style="flex:1;min-width:0"><div><span class="tag dd">D-day</span><span class="muted">' + esc(ddDateLabel(x)) + '</span></div><div class="mtext" style="font-weight:700;margin-top:4px">' + hl(x.title, q) + '</div></div></div>';
 }
 function renderFindResults(){
   const box = document.getElementById('findRes'); if(!box) return;
@@ -719,25 +788,61 @@ function saveMemo(id){
 function editDday(id){
   const x = id ? DB.items.find(i => i.id === id) : {type:'dday', title:'', date: todayYmd(), kind:'since'};
   if(!x) return;
-  const opt = (v, l) => '<option value="' + v + '"' + (x.kind === v ? ' selected' : '') + '>' + l + '</option>';
+  const sel = x.kind === 'yearly' ? (x.lunar ? 'yearly_lunar' : 'yearly') : (x.kind || 'since');
+  const b = ymdParts(x.date);
+  const opt = (v, l) => '<option value="' + v + '"' + (sel === v ? ' selected' : '') + '>' + l + '</option>';
   openModal('<h2>' + (id ? 'D-day 수정' : '새 D-day') + '</h2>'
-    + '<div class="field"><label>이름</label><input id="f_dtitle" value="' + esc(x.title) + '" placeholder="예) 사귄 날, 우리 아이"></div>'
-    + '<div class="field"><label>날짜</label><input type="date" id="f_ddate" value="' + esc(x.date) + '"></div>'
-    + '<div class="field"><label>세는 방법</label><select id="f_dkind">'
+    + '<div class="field"><label>이름</label><input id="f_dtitle" value="' + esc(x.title) + '" placeholder="예) 엄마 생신, 사귄 날, 우리 아이"></div>'
+    + '<div class="field"><label>세는 방법</label><select id="f_dkind" onchange="ddKindChanged()">'
     + opt('since', '그날부터 며칠째 (사귄 지·아이 N일 — 첫날=1일)')
     + opt('until', '그날까지 남은 날 (시험·여행 D-day)')
-    + opt('yearly', '매년 돌아오는 날 (생일·결혼기념일)')
+    + opt('yearly', '매년 양력 (생일·결혼기념일)')
+    + opt('yearly_lunar', '매년 음력 (부모님 생신·제사)')
     + '</select></div>'
-    + '<div class="muted" style="margin-bottom:8px">음력 기념일은 다음 단계에서 추가돼요.</div>'
+    + '<div class="field" id="f_solarBox"><label id="f_dlabel">날짜</label><input type="date" id="f_ddate" value="' + esc(x.lunar ? '' : x.date) + '"></div>'
+    + '<div class="field" id="f_lunarBox"><label>음력 날짜</label><div class="row" style="flex-wrap:nowrap">'
+    + '<input id="f_ly" inputmode="numeric" placeholder="연도(모르면 비움)" value="' + (x.lunar && !x.noYear ? b.y : '') + '" style="flex:1.4">'
+    + '<input id="f_lm" inputmode="numeric" placeholder="월" value="' + (x.lunar ? b.m : '') + '" style="flex:1">'
+    + '<input id="f_ld" inputmode="numeric" placeholder="일" value="' + (x.lunar ? b.d : '') + '" style="flex:1"></div>'
+    + '<div class="muted" style="margin-top:6px" id="f_lunarHint"></div></div>'
+    + '<div class="field" id="f_noYearBox"><label style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="f_noYear" style="width:auto"' + (x.noYear && !x.lunar ? ' checked' : '') + '> 연도는 몰라요 (몇 번째인지 안 셈)</label></div>'
     + '<div class="row" style="justify-content:space-between;margin-top:6px">'
     + (id ? '<button class="btn warn" onclick="if(confirm(\'이 D-day를 지울까요?\')){removeItem(\'' + id + '\');closeModal();toast(\'삭제했어요\')}">삭제</button>' : '<span></span>')
     + '<div class="row"><button class="btn sec" onclick="closeModal()">닫기</button><button class="btn pri" onclick="saveDday(\'' + (id || '') + '\')">저장</button></div></div>');
+  ['f_ly','f_lm','f_ld'].forEach(k => document.getElementById(k).addEventListener('input', lunarHint));
+  ddKindChanged();
+}
+function ddKindChanged(){
+  const k = val('f_dkind');
+  document.getElementById('f_lunarBox').classList.toggle('hidden', k !== 'yearly_lunar');
+  document.getElementById('f_solarBox').classList.toggle('hidden', k === 'yearly_lunar');
+  document.getElementById('f_noYearBox').classList.toggle('hidden', k !== 'yearly');
+  document.getElementById('f_dlabel').textContent = k === 'yearly' ? '날짜 (양력 — 매년 같은 날)' : '날짜';
+  lunarHint();
+}
+function lunarHint(){
+  const el = document.getElementById('f_lunarHint'); if(!el) return;
+  const m = +val('f_lm'), d = +val('f_ld');
+  if(!(m >= 1 && m <= 12 && d >= 1 && d <= 30)){ el.textContent = '해마다 그해 양력 날짜로 자동 계산돼요.'; return; }
+  const nx = yearlyNext({date: '2000-' + pad(m) + '-' + pad(d), lunar: true}, parseYmd(todayYmd()));
+  el.textContent = nx ? '다가오는 날: 양력 ' + fmtDate(ymd(nx), true) + ' — 해마다 자동 계산' : '';
 }
 function saveDday(id){
-  const title = val('f_dtitle'), date = val('f_ddate');
-  if(!title || !date){ toast('이름과 날짜를 넣어 주세요'); return; }
+  const title = val('f_dtitle'), k = val('f_dkind') || 'since';
+  if(!title){ toast('이름을 넣어 주세요'); return; }
+  let date, lunar = false, noYear = false;
+  if(k === 'yearly_lunar'){
+    const m = +val('f_lm'), d = +val('f_ld'), yTxt = val('f_ly');
+    const y = yTxt ? +yTxt : new Date().getFullYear();
+    if(!(m >= 1 && m <= 12 && d >= 1 && d <= 30) || !(y >= 1000 && y <= 2050)){ toast('음력 월(1~12)·일(1~30)을 확인해 주세요'); return; }
+    date = y + '-' + pad(m) + '-' + pad(d); lunar = true; noYear = !yTxt;
+  } else {
+    date = val('f_ddate');
+    if(!date){ toast('날짜를 넣어 주세요'); return; }
+    noYear = k === 'yearly' && document.getElementById('f_noYear').checked;
+  }
   const x = id ? DB.items.find(i => i.id === id) : {id: uid(), type:'dday'};
-  Object.assign(x, {title, date, kind: val('f_dkind') || 'since'});
+  Object.assign(x, {title, date, kind: k === 'yearly_lunar' ? 'yearly' : k, lunar, noYear});
   upsert(x); closeModal(); toast('저장했어요');
 }
 
@@ -799,7 +904,10 @@ function fromAi(a, raw){
   const str = v => (typeof v === 'string' ? v.trim() : '');
   if(a.kind === 'find' && str(a.query)) return {kind:'find', query: str(a.query)};
   if(a.kind === 'event' && okDate(a.date) && str(a.title)) return {kind:'event', date:a.date, time: okTime(a.time) ? a.time : null, title: str(a.title), notes};
-  if(a.kind === 'dday' && okDate(a.date) && str(a.title)) return {kind:'dday', date:a.date, title: str(a.title), ddKind: ['since','until','yearly'].includes(a.dday_kind) ? a.dday_kind : 'since', notes};
+  if(a.kind === 'dday' && okDate(a.date) && str(a.title)){
+    const k = ['since','until','yearly'].includes(a.dday_kind) ? a.dday_kind : 'since';
+    return {kind:'dday', date:a.date, title: str(a.title), ddKind: k, lunar: k === 'yearly' && a.lunar === true, noYear: k === 'yearly' && a.no_year === true, notes};
+  }
   if(a.kind === 'memo') return {kind:'memo', text: str(a.text) || raw, date: okDate(a.date) ? a.date : null, notes};
   return null;
 }
@@ -826,7 +934,7 @@ async function onAsk(fromVoice){
 }
 function pvSummary(p){
   if(p.kind === 'event') return fmtDate(p.date) + (p.time ? ' ' + fmtTime(p.time) : ' 종일') + ' · ' + p.title;
-  if(p.kind === 'dday') return p.title + ' · ' + fmtDate(p.date, true) + ' · ' + DD_KIND[p.ddKind || 'since'];
+  if(p.kind === 'dday') return p.title + ' · ' + ddDateLabel({kind: p.ddKind || 'since', date: p.date, lunar: p.lunar, noYear: p.noYear}) + (p.ddKind === 'yearly' ? '' : ' · ' + DD_KIND[p.ddKind || 'since']);
   return p.text + (p.date ? ' (' + fmtDate(p.date) + ')' : '');
 }
 function speakSummary(p){
@@ -835,8 +943,8 @@ function speakSummary(p){
     return (d.getMonth()+1) + '월 ' + d.getDate() + '일 ' + DOW[d.getDay()] + '요일 ' + (p.time ? fmtTime(p.time) + ' ' : '') + p.title + ', 일정에 넣을게요.';
   }
   if(p.kind === 'dday'){
-    const d = parseYmd(p.date);
-    return p.title + ', ' + d.getFullYear() + '년 ' + (d.getMonth()+1) + '월 ' + d.getDate() + '일, 디데이로 등록할게요.';
+    const b = ymdParts(p.date);
+    return p.title + ', ' + (p.lunar ? '음력 ' : '') + (p.noYear ? '' : b.y + '년 ') + b.m + '월 ' + b.d + '일, ' + (p.ddKind === 'yearly' ? '매년 기념일로' : '디데이로') + ' 등록할게요.';
   }
   return '메모할게요. ' + p.text;
 }
@@ -881,9 +989,12 @@ function pendingEdit(forceKind){
   cancelPending(true);
   if(!forceKind && p.kind === 'dday'){
     editDday(null);
+    const b = ymdParts(p.date);
     document.getElementById('f_dtitle').value = p.title;
-    document.getElementById('f_ddate').value = p.date;
-    document.getElementById('f_dkind').value = p.ddKind || 'since';
+    document.getElementById('f_dkind').value = p.lunar ? 'yearly_lunar' : (p.ddKind || 'since');
+    if(p.lunar){ document.getElementById('f_ly').value = p.noYear ? '' : b.y; document.getElementById('f_lm').value = b.m; document.getElementById('f_ld').value = b.d; }
+    else { document.getElementById('f_ddate').value = p.date; document.getElementById('f_noYear').checked = !!p.noYear; }
+    ddKindChanged();
   } else if((forceKind || p.kind) === 'event'){
     editEvent(null, p.date || selDate);
     document.getElementById('f_title').value = p.title || p.text || '';
@@ -901,7 +1012,7 @@ function confirmPending(){
     selectDate(p.date);
     if(TAB !== 'cal') showTab('cal');
   } else if(p.kind === 'dday'){
-    upsert({id: uid(), type:'dday', title: p.title, date: p.date, kind: p.ddKind || 'since', src: 'ask'});
+    upsert({id: uid(), type:'dday', title: p.title, date: p.date, kind: p.ddKind || 'since', lunar: !!p.lunar, noYear: !!p.noYear, src: 'ask'});
     if(TAB !== 'dday') showTab('dday');
   } else {
     upsert({id: uid(), type:'memo', text: p.text, date: p.date || null, done: false, src: 'ask'});

@@ -25,6 +25,8 @@ const ParseSchema = z.object({
   title: z.string().nullable(),      // 일정·D-day 제목
   text: z.string().nullable(),       // 메모 본문
   dday_kind: z.enum(["since", "until", "yearly"]).nullable(),
+  lunar: z.boolean().nullable(),     // yearly가 음력 기념일이면 true (date는 음력 날짜)
+  no_year: z.boolean().nullable(),   // 연도를 말하지 않은 매년 기념일
   query: z.string().nullable(),      // 찾기 검색어
   note: z.string().nullable(),       // 애매해서 추정한 부분 (짧게)
 });
@@ -37,7 +39,7 @@ const SearchSchema = z.object({
 const PARSE_SYSTEM = `너는 한국어 개인 일정 비서다. 사용자가 말한 한 문장을 분류해 JSON으로만 답한다.
 - event: 날짜가 있는 일정. date(YYYY-MM-DD) 필수, 시간이 있으면 time(HH:MM, 24시간). title은 "입력해줘/넣어줘/추가해줘" 같은 명령어를 뺀 짧은 제목.
 - memo: 날짜 없는 생각·아이디어·"메모해줘/기억해줘". text에 명령어를 뺀 본문. 날짜가 언급되면 date도.
-- dday: 기념일·D-day 등록("사귄 날 2024년 3월 1일", "아이 생일 등록", "시험 D-day"). title·date 필수. dday_kind: 그날부터 며칠째 세기=since(사귄 날, 아이 태어난 날), 그날까지 남은 날=until(시험·여행), 매년 반복=yearly(생일·결혼기념일).
+- dday: 기념일·D-day 등록("사귄 날 2024년 3월 1일", "아이 생일 등록", "시험 D-day"). title·date 필수. dday_kind: 그날부터 며칠째 세기=since(사귄 날, 아이 태어난 날), 그날까지 남은 날=until(시험·여행), 매년 반복=yearly(생일·결혼기념일). "음력"이라고 하면 lunar=true이고 date에는 음력 날짜를 그대로 적는다. 연도를 말하지 않은 매년 기념일은 올해 연도를 넣고 no_year=true.
 - find: 예전 기록을 찾는 질문("~언제였지?", "~있었나?", "~찾아줘"). query에 핵심 단어.
 규칙: 날짜는 기준일(오늘) 기준으로 계산. "다음 주 화요일"은 다음 주(월요일 시작)의 화요일. 연도가 없고 이미 60일 넘게 지난 날짜면 내년. 오전/오후 표시가 없는 1~7시는 오후로 보고 note에 "오후로 이해"라고 적는다. 해당 없는 칸은 null.`;
 

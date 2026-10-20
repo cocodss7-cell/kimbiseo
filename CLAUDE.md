@@ -21,7 +21,7 @@
 ## 데이터 구조 (localStorage `kbs_data_v1` = `{ver, items:[], dirty:[], lastPull, syncUser}`)
 - 일정 `{id, type:'event', date:'YYYY-MM-DD', time:'HH:MM'|null, title, note, created, updated, src?}`
 - 메모 `{id, type:'memo', text, date|null, done, created, updated}`
-- D-day `{id, type:'dday', title, date, kind:'since'|'until'|'yearly'}` — since는 첫날=1일.
+- D-day `{id, type:'dday', title, date, kind:'since'|'until'|'yearly', lunar?, noYear?}` — since는 첫날=1일. yearly+lunar면 date = 음력 날짜(YYYY-MM-DD, 30일 가능 — `parseYmd` 쓰지 말고 `ymdParts`).
 - 삭제는 `{id, type, created, deleted:true, updated}` 지움 표시로 남김(화면은 `live()`만 사용).
 - 설정 백업/불러오기(JSON, id 기준 합치기 — 기존 항목 유지).
 
@@ -33,7 +33,7 @@
 
 ## 단계
 - **v1 (완료)**: 화면 뼈대(달력·메모·D-day·찾기), 이 기기 저장, 규칙 해석, 음성 입력·읽어 주기, 백업.
-- **2단계 (v3 완료)**: Supabase 동기화(PC↔폰), Claude(Haiku) 해석·비슷한 뜻 찾기(Edge Function, 실패 시 규칙 해석 폴백). 음력 기념일은 남음.
+- **2단계 (v3 완료)**: Supabase 동기화(PC↔폰), Claude(Haiku) 해석·비슷한 뜻 찾기(Edge Function, 실패 시 규칙 해석 폴백). 음력은 v4에서 완료.
 - **3단계**: 아침 브리핑 웹푸시(pg_cron + Edge Function), 빅스비 빠른 명령어 연결 안내.
 
 ## 이력
@@ -41,6 +41,8 @@
 - v2-clean-ui (2026-10-20): 깔끔한 화면으로 정리(이모지 최소화) — 흰 머리글 + PC 상단 탭(폰은 하단 탭, 선 아이콘), 큰 흰 패널, 달력 칸 = 둥근 회색 상자 + 종류별 색 라벨(일정 초록·메모 노랑·D-day 주황), 체크 칩으로 종류 켜고 끄기(`calShow`), PC 오른쪽/폰 아래 '선택한 날' 패널(`sideHtml` — 그날 항목 + 30일 안 D-day). 오늘 = 날짜 숫자 검은 배지. 로직·저장 구조 불변.
 
 - v3-sync-ai (2026-10-20): 서버 연결. ① 본인 로그인(Supabase Auth 이메일·비번, 대시보드에서 만든 계정만 — 가입 차단) ② PC↔폰 동기화 `syncNow`(올리기: `DB.dirty` upsert → 내리기: `server_at` > `DB.lastPull`−5초, 1,000건씩), 병합 = `updated`(ms) 큰 쪽(`mergeRemote`), 삭제 = 지움 표시(`deleted`) 동기화, 첫 로그인 시 이 기기 기록 전부 올림(`DB.syncUser`). 수정 1.2초 뒤·화면 복귀·온라인 복귀·1분마다 동기화. 머리글 상태 표시(`#syncState`) ③ Claude 해석 `onAsk` → Edge Function `kbs-ai`(action parse, Haiku 5.5, structured outputs) → `fromAi` 검증 → 실패·7초 초과면 규칙 해석. D-day 등록도 말로 가능 ④ 찾기 Enter/음성 = Claude 비슷한 뜻 찾기(`runAiSearch`, action search — 최근 600건 요약 줄 전송) + 글자 일치 결과. supabase-js는 시작 후 비동기 로드(`sbLoad`) — 못 받아도 이 기기 모드로 동작.
+- v4-lunar (2026-10-20): 음력. korean-lunar-calendar 0.4.0(MIT, 한국천문연구원 기준, 1000~2050년)을 index.html 안에 포함(인터넷 없이 계산) — `solarToLunar`·`lunarToSolar`(30일 없는 달은 29일)·`lunarLabel`. D-day '매년 양력'/'매년 음력'(`kind:'yearly'` + `lunar`, 음력은 `date`에 음력 날짜 그대로, `noYear` = 연도 모름) → `yearlyNext`가 해마다 그해 양력 날짜를 새로 계산(운영자 요청: 기념일은 양력·음력 맞춰 매년 갱신), 카드에 양력 날짜·음력 같이 표시. 달력 PC 칸에 음력 날짜, 선택한 날 패널에 '음력 M월 D일'. 규칙 해석: '생일·생신·기념일' + 날짜 → 매년 기념일('음력'이면 음력, 연도 없으면 noYear), '사귄·태어난' + 연도 → 그날부터, '음력 9월 15일 제사' → 그해 양력 일정. kbs-ai 스키마에 lunar·no_year 추가(재배포 시 반영).
+- 캡처 일정 옮기기: 채팅으로 받은 캡처를 백업 형식 JSON으로 만들어 설정 → 백업 불러오기(개인 데이터라 저장소에 커밋하지 않음).
 
 ## 서버 (Supabase 프로젝트 `bqyepkbajnnguhhcixfv`, 조직 kimbiseo Free)
 - 표 `kbs_items`(id, user_id, type, data jsonb, updated, deleted, server_at) — RLS 본인만, anon 권한 없음, 트리거 `kbs_items_before_write`(server_at 갱신 + 더 오래된 updated로 덮어쓰기 무시). SQL: `_supabase/01_kbs_items.sql`.
