@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v7.1-voice-fix">
+<meta name="app-build-version" content="v7.2-wispr">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v7.1-voice-fix';</script>
+<script>window.APP_BUILD = 'v7.2-wispr';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -854,7 +854,10 @@ function openSettings(){
     + [['auto','자동'],['light','밝게'],['dark','어둡게']].map(([k, l]) => '<button class="' + (theme === k ? 'on' : '') + '" onclick="setTheme(\'' + k + '\')">' + l + '</button>').join('')
     + '</div></div>'
     + accountHtml()
-    + '<div class="sec"><h3>말로 입력</h3><label style="display:flex;gap:10px;align-items:center"><input type="checkbox" style="width:auto"' + (autoVoiceOn() ? ' checked' : '') + ' onchange="setAutoVoice(this.checked)"> 앱을 열면 바로 듣기</label><div class="muted" style="margin-top:6px">빅스비로 김비서를 열 때 편해요. 다른 앱에 15초 넘게 있다 돌아와도 들어요.</div></div>'
+    + '<div class="sec"><h3>말로 입력</h3><div class="seg" style="margin-bottom:8px">'
+    + [['chrome','Chrome 음성'],['wispr','Wispr Flow']].map(([k, l]) => '<button class="' + (voiceMode() === k ? 'on' : '') + '" onclick="setVoiceMode(\'' + k + '\')">' + l + '</button>').join('') + '</div>'
+    + '<div class="muted" style="margin-bottom:10px">' + (voiceMode() === 'wispr' ? '입력칸을 누르고 Wispr로 말하면, 글자가 들어온 뒤 1.5초 지나 자동으로 입력해요(손으로 칠 때는 자동 입력 안 함).' : '마이크 버튼을 누르고 말해요. 2.2초 조용하면 끝나요.') + '</div>'
+    + '<label style="display:flex;gap:10px;align-items:center"><input type="checkbox" style="width:auto"' + (autoVoiceOn() ? ' checked' : '') + ' onchange="setAutoVoice(this.checked)"> 앱을 열면 바로 말하기 화면</label><div class="muted" style="margin-top:6px">빅스비로 김비서를 열 때 편해요. 다른 앱에 15초 넘게 있다 돌아와도 떠요.</div></div>'
     + '<div class="sec" id="pushBox"><h3>아침 알림</h3><div class="muted">확인하는 중…</div></div>'
     + '<div class="sec"><h3>백업</h3><div class="muted" style="margin-bottom:10px">' + (SESSION ? '로그인 중이라 서버에도 저장돼요. 그래도 가끔 파일로 받아 두면 안심이에요.' : '로그인 전에는 이 기기에만 저장돼요. 폰 초기화·캐시 삭제 전에 꼭 백업해 두세요.') + '</div>'
     + '<div class="row"><button class="btn sec sm" onclick="exportData()">백업 파일 받기</button>'
@@ -1048,6 +1051,7 @@ function speak(text){
 const REC_SILENCE_MS = 2200, REC_FIRST_WAIT_MS = 9000, REC_MAX_MS = 30000;
 let recWanted = false, recText = '', recSession = '', recStartAt = 0, recLastAt = 0, recSilenceT = null, recMaxT = null;
 function toggleMic(){
+  if(voiceMode() === 'wispr' && !recOn && !recWanted){ focusAskForWispr(); return; }
   if(recOn || recWanted){ endListening(); return; }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR){ toast('이 브라우저는 음성 입력을 지원하지 않아요 — 키보드 마이크(Wispr Flow)를 써 주세요'); document.getElementById('askInput').focus(); return; }
@@ -1108,11 +1112,52 @@ function finishListening(){
   recOn = false; recWanted = false; clearTimeout(recSilenceT); clearTimeout(recMaxT);
   document.getElementById('micBtn').classList.remove('on');
   const inp = document.getElementById('askInput');
-  inp.placeholder = '10월 16일 18시 면접 넣어줘';
+  applyVoiceMode();
   if(recText) inp.value = recText;
   if(inp.value.trim()) onAsk(true);
   else if(Date.now() - recStartAt > 1500) toast('말씀이 안 들렸어요');
 }
+
+// ---------- Wispr Flow 모드 ----------
+// Wispr는 키보드·떠 있는 버튼으로 입력칸에 받아쓴 글자를 한꺼번에 넣어 줌 → 한 번에 6글자 이상 늘면 받아쓰기로 보고,
+// 1.5초 동안 더 바뀌지 않으면 자동으로 입력(읽어 주기 + 8초 뒤 저장). 손으로 한 글자씩 고치면 자동 입력 취소.
+const WISPR_IDLE_MS = 1500;
+let wisprDictated = false, wisprT = null, wisprLastLen = 0, wisprLastBig = 0;
+function voiceMode(){ try{ return localStorage.getItem('kbs_voice_mode') === 'wispr' ? 'wispr' : 'chrome'; }catch(e){ return 'chrome'; } }
+function setVoiceMode(m){
+  try{ localStorage.setItem('kbs_voice_mode', m); }catch(e){}
+  applyVoiceMode(); openSettings();
+  toast(m === 'wispr' ? 'Wispr 모드 — 입력칸을 누르고 Wispr로 말하세요' : 'Chrome 음성 모드');
+}
+function applyVoiceMode(){
+  const inp = document.getElementById('askInput');
+  if(!recOn) inp.placeholder = voiceMode() === 'wispr' ? '여기를 누르고 Wispr로 말하세요' : '10월 16일 18시 면접 넣어줘';
+  document.querySelector('#voiceGate div').textContent = voiceMode() === 'wispr' ? '눌러서 Wispr로 말하기' : '눌러서 말하기';
+}
+function focusAskForWispr(){
+  const inp = document.getElementById('askInput');
+  inp.focus();
+  toast('Wispr 버튼을 눌러 말하세요');
+}
+(function(){
+  const inp = document.getElementById('askInput');
+  inp.addEventListener('input', () => {
+    const len = inp.value.length, jump = len - wisprLastLen, now = Date.now();
+    wisprLastLen = len;
+    if(voiceMode() !== 'wispr') return;
+    clearTimeout(wisprT);
+    if(jump >= 6){ wisprDictated = true; wisprLastBig = now; }                       // 받아쓰기로 한꺼번에 들어옴(키보드 추천 단어 한 번 누른 것과 구분하려고 6글자 이상)
+    else if(wisprDictated && now - wisprLastBig > 800){ wisprDictated = false; return; } // 받아쓴 뒤 손으로 고침 → 자동 입력 안 함
+    if(!wisprDictated || !inp.value.trim()) return;
+    wisprT = setTimeout(() => {
+      if(!wisprDictated || !inp.value.trim()) return;
+      wisprDictated = false; wisprLastLen = 0;
+      inp.blur(); // 키보드 내리기
+      onAsk(true);
+    }, WISPR_IDLE_MS);
+  });
+  inp.closest('form').addEventListener('submit', () => { clearTimeout(wisprT); wisprDictated = false; wisprLastLen = 0; });
+})();
 
 // ---------- 서버 (Supabase: 본인 로그인 · PC↔폰 동기화 · Claude) ----------
 // 공개용 주소·키 — 실제 보호는 DB 권한 규칙(RLS: 본인 기록만)
@@ -1352,16 +1397,18 @@ setInterval(() => { if(!document.hidden) syncNow(); }, 60000);
 // ---------- 시작 ----------
 applyTheme();
 render();
+applyVoiceMode();
 sbLoad();
 // 빅스비 빠른 명령어 등으로 ?voice=1 주소를 열면 바로 듣기 시도 (브라우저가 막으면 마이크 버튼 안내)
 // 브라우저가 터치 없이 마이크를 못 켜게 하면 큰 마이크 버튼이 남아 있음(한 번 누르면 시작)
-function voiceGateTap(){ document.getElementById('voiceGate').classList.add('hidden'); if(!recOn) toggleMic(); }
+function voiceGateTap(){ document.getElementById('voiceGate').classList.add('hidden'); if(voiceMode() === 'wispr') focusAskForWispr(); else if(!recOn) toggleMic(); }
 // 설정 '앱을 열면 바로 듣기' — 빅스비가 앱을 어떤 방식으로 열든(주소·앱 열기·뒤에 있던 앱 불러오기) 바로 말할 수 있게
 function autoVoiceOn(){ try{ return localStorage.getItem('kbs_auto_voice') === '1'; }catch(e){ return false; } }
 function setAutoVoice(on){ try{ localStorage.setItem('kbs_auto_voice', on ? '1' : '0'); }catch(e){} toast(on ? '앱을 열면 바로 들을게요' : '바로 듣기를 껐어요'); }
 function startVoiceGate(){
   if(recOn || document.getElementById('modal').classList.contains('show')) return;
   document.getElementById('voiceGate').classList.remove('hidden');
+  if(voiceMode() === 'wispr') return; // Wispr는 화면을 눌러야(키보드가 떠야) 쓸 수 있음
   setTimeout(() => { try{ if(!recOn) toggleMic(); }catch(e){} }, 400);
 }
 if(/[?&]voice=1/.test(location.search) || autoVoiceOn()){
