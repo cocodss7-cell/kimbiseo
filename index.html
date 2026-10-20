@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v8-pc-mini">
+<meta name="app-build-version" content="v9-drawer">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v8-pc-mini';</script>
+<script>window.APP_BUILD = 'v9-drawer';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -224,6 +224,22 @@ body.mini{padding-bottom:96px}
 .mini-row .b{flex:1;min-width:0;font-size:14px;word-break:break-all}
 .mini-row:hover .b{text-decoration:underline}
 .mini-empty{font-size:13px;color:var(--sub);padding:4px 0}
+/* 서랍 */
+.gtot{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.gtot div{background:var(--cell);border-radius:12px;padding:10px;text-align:center}
+.gtot dt{font-size:12px;color:var(--sub);margin-bottom:2px} .gtot dd{margin:0;font-weight:800;font-size:14px;letter-spacing:-.4px}
+.gin{color:var(--ev-tx)} .gout{color:var(--dd-tx)}
+.gperson{background:var(--cell);border-radius:12px;margin-bottom:6px;overflow:hidden}
+.gperson .gh{display:flex;gap:8px;align-items:center;padding:11px 14px;cursor:pointer}
+.gperson .gh b{flex:1;min-width:0;word-break:break-all}
+.gperson .gh span{font-size:13px;white-space:nowrap}
+.gperson .gbody{padding:0 14px 10px}
+.gline{display:flex;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:14px;cursor:pointer}
+.gline .m{flex:1;color:var(--sub);font-size:13px}
+.refcard{background:var(--cell);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+.refcard h4{margin:0 0 6px;font-size:15px} .refcard .rb{white-space:pre-wrap;line-height:1.55;font-size:14px}
+.linkbtn{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--cell);border-radius:12px;padding:14px;margin-bottom:8px;text-decoration:none;color:var(--text);font-weight:700}
+.linkbtn small{color:var(--sub);font-weight:500;word-break:break-all}
 .hidden{display:none!important}
 </style>
 </head>
@@ -236,6 +252,7 @@ body.mini{padding-bottom:96px}
     <button data-tab="memo" onclick="showTab('memo')">메모</button>
     <button data-tab="dday" onclick="showTab('dday')">D-day</button>
     <button data-tab="find" onclick="showTab('find')">찾기</button>
+    <button data-tab="more" onclick="showTab('more')">서랍</button>
   </nav>
   <span class="today" id="topToday"></span>
   <button class="sync" id="syncState" onclick="openSettings()" title="로그인·동기화"><i></i><span>이 기기</span></button>
@@ -250,6 +267,7 @@ body.mini{padding-bottom:96px}
   <section id="tab-dday" class="hidden"></section>
   <section id="tab-find" class="hidden"></section>
   <section id="tab-mini" class="hidden"></section>
+  <section id="tab-more" class="hidden"></section>
 </main>
 
 <!-- 말하기·입력 미리보기 -->
@@ -269,6 +287,7 @@ body.mini{padding-bottom:96px}
   <button data-tab="memo" onclick="showTab('memo')"><svg class="ico" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>메모</button>
   <button data-tab="dday" onclick="showTab('dday')"><svg class="ico" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>D-day</button>
   <button data-tab="find" onclick="showTab('find')"><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>찾기</button>
+  <button data-tab="more" onclick="showTab('more')"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 12h18M10 8h4M10 16h4"/></svg>서랍</button>
 </nav>
 
 <div class="modal" id="modal" onclick="if(event.target===this)closeModal()"><div class="sheet" id="sheet"></div></div>
@@ -432,7 +451,7 @@ function parseCommand(raw){
   let intent = null;
 
   // 찾기 의도
-  if(/(찾아\s*(줘|봐|주세요)?|검색해?\s*(줘)?|있었나|있었지|언제였지|뭐였지|뭐더라|어디였지)\s*[?？.]?\s*$/.test(t.trim())){
+  if(/(찾아\s*(줘|봐|주세요)?|검색해?\s*(줘)?|있었나|있었지|언제였지|뭐였지|뭐더라|어디였지|얼마\s*(받았|냈|했|줬|보냈)[가-힣]*|받았지|냈지|했었지)\s*[?？.]?\s*$/.test(t.trim())){
     intent = 'find';
   }
   // 메모 의도
@@ -441,6 +460,7 @@ function parseCommand(raw){
 
   const take = re => { const m = t.match(re); if(m){ t = t.replace(m[0], ' '); } return m; };
   let m;
+  const repeatMonthly = intent !== 'find' && !!take(/매\s*(월|달)\s*/);
   // 음력·기념일 표시
   const isLunar = !!take(/음력\s*(으로|로)?/);
   const ddWord = intent !== 'find' && intent !== 'memo' ? (t.match(/생일|생신|기념일|사귄|태어난/) || [])[0] : null;
@@ -495,13 +515,27 @@ function parseCommand(raw){
   let title = t
     .replace(/^\s*(메모|기억|적어)\s*(해|좀)?\s*(줘|둬|주세요)?\s*[:,]?\s+/,' ')
     .replace(/(을|를)?\s*(일정\s*(으로|에)?\s*)?(입력|추가|등록|저장|넣어|기록|잡아|메모|적어|기억)\s*(해|하)?\s*(줘|주세요|줄래|둬|놔|라)?\s*[.!?？]*\s*$/,' ')
-    .replace(/(찾아\s*(줘|봐|주세요)?|검색해?\s*(줘)?|있었나|있었지|언제였지|뭐였지|뭐더라|어디였지)\s*[?？.]?\s*$/,' ')
+    .replace(/(찾아\s*(줘|봐|주세요)?|검색해?\s*(줘)?|있었나|있었지|언제였지|뭐였지|뭐더라|어디였지|얼마\s*(받았|냈|했|줬|보냈)[가-힣]*|받았지|냈지|했었지)\s*[?？.]?\s*$/,' ')
     .replace(/(^|\s)(일정|스케줄|스케쥴|메모)(\s|$)/g,' ')
     .replace(/^\s*(에|에는|은|는)\s+/,' ')
     .replace(/\s(에|에는)\s/g,' ')
     .replace(/\s+/g,' ').trim();
 
   if(intent === 'find') return {kind:'find', query: title || raw.trim()};
+  // 경조사 기록: "홍길동 장례식 10만원 냈어", "김철수 결혼식 축의금 20만원 받았어"
+  const gm = raw.match(/(\d+(?:[.,]\d+)?)\s*(만\s*원|만|원)/);
+  if(gm && /(냈|줬|보냈|드렸|했어|했다|받았|들어왔)/.test(raw) && /(결혼|축의|장례|조문|부의|조의|부고|상가|돌잔치|돌\b|생일|경조)/.test(raw)){
+    const n = parseFloat(gm[1].replace(',', '.'));
+    const amount = Math.round(/만/.test(gm[2]) ? n * 10000 : n);
+    const ev = /결혼|축의/.test(raw) ? '결혼식' : /장례|조문|부의|조의|부고|상가/.test(raw) ? '장례식' : /돌/.test(raw) ? '돌잔치' : /생일/.test(raw) ? '생일' : '기타';
+    const nm = raw.replace(gm[0], ' ')
+      .replace(/(결혼식|결혼|축의금|축의|장례식장?|장례|조문|부의금|부의|조의금|조의|부고|상가|돌잔치|생일|경조사비?|경조금)(에|에서|으로|로)?/g, ' ')
+      .replace(/(을|를)?\s*(냈|줬|보냈|드렸|했|받았|들어왔)\S*/g, ' ')
+      .replace(/(기록|입력|저장)\S*/g, ' ').replace(/^\s*김비서(야|님)?\s*[,.]?/, ' ')
+      .replace(/(오늘|어제|그제|\d+\s*월\s*\d+\s*일)/g, ' ')
+      .replace(/\s+/g, ' ').trim();
+    if(amount > 0 && nm) return {kind:'gift', nm, a: amount, ev, dir: /(받았|들어왔)/.test(raw) ? 'in' : 'out', date: date ? ymd(date) : todayYmd(), notes};
+  }
   if(!title) title = raw.trim();
   // 기념일: "엄마 생일 음력 3월 5일", "결혼기념일 2020년 5월 23일", "사귄 날 2024-03-01"
   if(ddWord && raw3 && raw3.m >= 1 && raw3.m <= 12 && raw3.d >= 1 && raw3.d <= (isLunar ? 30 : 31)){
@@ -516,7 +550,8 @@ function parseCommand(raw){
     if(sd){ date = sd; notes.push('음력 ' + raw3.m + '월 ' + raw3.d + '일 → 양력 ' + (sd.getMonth()+1) + '월 ' + sd.getDate() + '일'); }
   }
   if(date && intent !== 'memo'){
-    return {kind:'event', date: ymd(date), time, title, notes};
+    if(repeatMonthly) notes.push('매월 반복');
+    return {kind:'event', date: ymd(date), time, title, notes, repeat: repeatMonthly ? 'monthly' : null};
   }
   return {kind:'memo', text: title, date: date ? ymd(date) : null, notes};
 }
@@ -540,8 +575,9 @@ const isNarrow = () => window.innerWidth < 640;
 
 function showTab(t){
   TAB = t;
-  ['cal','memo','dday','find'].forEach(k => document.getElementById('tab-' + k).classList.toggle('hidden', k !== t));
+  ['cal','memo','dday','find','more'].forEach(k => document.getElementById('tab-' + k).classList.toggle('hidden', k !== t));
   if(t === 'find') document.getElementById('tab-find').innerHTML = ''; // 탭을 새로 열 때는 찾기 화면을 새로 그림
+  if(t === 'more') document.getElementById('tab-more').innerHTML = '';
   document.querySelectorAll('.tabs button, #topNav button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
   render();
   window.scrollTo(0, 0);
@@ -554,6 +590,7 @@ function render(){
   if(TAB === 'memo') renderMemo();
   if(TAB === 'dday') renderDday();
   if(TAB === 'find'){ if(document.getElementById('findInput')) renderFindResults(); else renderFind(); }
+  if(TAB === 'more'){ if(document.getElementById('drawerBody')) renderDrawerBody(); else renderMore(); }
 }
 // ---------- PC 작은 창 모드 ----------
 // 마우스로 쓰는 기기(PC)에서 창 폭이 560px 미만이면 오늘·앞으로 7일·다가오는 D-day·메모만 목록으로. 폰은 해당 없음.
@@ -562,7 +599,7 @@ const isPcNarrow = () => window.matchMedia('(pointer: fine)').matches && window.
 function applyMini(){
   const on = isPcNarrow() && !miniOff;
   document.body.classList.toggle('mini', on);
-  ['cal','memo','dday','find'].forEach(k => document.getElementById('tab-' + k).classList.toggle('hidden', on || k !== TAB));
+  ['cal','memo','dday','find','more'].forEach(k => document.getElementById('tab-' + k).classList.toggle('hidden', on || k !== TAB));
   document.getElementById('tab-mini').classList.toggle('hidden', !on);
   const btn = document.getElementById('miniToggle');
   btn.classList.toggle('hidden', !isPcNarrow());
@@ -616,8 +653,15 @@ function panelHead(title, sub, right){
 function fmtDateLong(s){ const d = parseYmd(s); return d.getFullYear() + '년 ' + (d.getMonth()+1) + '월 ' + d.getDate() + '일 ' + DOW[d.getDay()] + '요일'; }
 
 // ---------- 달력 ----------
+// 매월 반복 일정: 시작일 이후 매달 같은 날(그달에 그날이 없으면 말일)
+function monthlyHits(x, s){
+  if(x.repeat !== 'monthly' || !x.date || s < x.date) return false;
+  const b = ymdParts(x.date), d = ymdParts(s);
+  const last = new Date(d.y, d.m, 0).getDate();
+  return d.d === Math.min(b.d, last);
+}
 function itemsOnDate(s){
-  const ev = events().filter(x => x.date === s).sort((a, b) => (a.time || '99').localeCompare(b.time || '99'));
+  const ev = events().filter(x => x.date === s || monthlyHits(x, s)).sort((a, b) => (a.time || '99').localeCompare(b.time || '99'));
   const mm = memos().filter(x => x.date === s);
   return {ev, mm};
 }
@@ -741,12 +785,19 @@ function renderDday(){
 
 // ---------- 찾기 (1단계: 글자 일치, 2단계에서 Claude로 '비슷한 뜻' 찾기) ----------
 function normalizeKo(s){ return String(s || '').toLowerCase().replace(/\s+/g, ''); }
+function itemText(x){
+  if(x.type === 'memo') return x.text || '';
+  if(x.type === 'gift') return [x.nm, x.ev, x.rel, x.grp, x.memo].filter(Boolean).join(' ');
+  if(x.type === 'ref') return [x.title, x.cat, x.keys, x.body].filter(Boolean).join(' ');
+  if(x.type === 'link') return [x.title, x.url].filter(Boolean).join(' ');
+  return (x.title || '') + ' ' + (x.note || '');
+}
 function searchItems(q){
   const words = q.split(/\s+/).map(w => w.replace(/(이랑|하고|에서|으로|에게|한테|은|는|이|가|을|를|에|도|랑|의|로)$/,'')).filter(w => w.length >= 1);
   if(!words.length) return [];
   const res = [];
   live().forEach(x => {
-    const text = x.type === 'memo' ? x.text : (x.title + ' ' + (x.note || ''));
+    const text = itemText(x);
     const n = normalizeKo(text);
     let score = 0;
     words.forEach(w => { const nw = normalizeKo(w); if(!nw) return; if(n.includes(nw)) score += 2; else if(nw.length >= 2 && [...nw].filter(c => n.includes(c)).length >= Math.ceil(nw.length * 0.7)) score += 1; });
@@ -775,6 +826,9 @@ let aiFind = {q:'', busy:false, answer:'', ids:[], failed:false};
 function findCard(x, q){
   if(x.type === 'event') return '<div class="mcard" onclick="editEvent(\'' + x.id + '\')"><div style="flex:1;min-width:0"><div><span class="tag ev">일정</span><span class="muted">' + fmtDate(x.date) + (x.time ? ' ' + fmtTime(x.time) : '') + '</span></div><div class="mtext" style="font-weight:700;margin-top:4px">' + hl(x.title, q) + '</div>' + (x.note ? '<div class="mtext muted">' + hl(x.note, q) + '</div>' : '') + '</div></div>';
   if(x.type === 'memo') return '<div class="mcard" onclick="editMemo(\'' + x.id + '\')"><div style="flex:1;min-width:0"><div><span class="tag memo">메모</span><span class="muted">' + (x.date ? fmtDate(x.date) + ' · ' : '') + new Date(x.created).toLocaleDateString('ko-KR') + '</span></div><div class="mtext" style="margin-top:4px">' + hl(x.text, q) + '</div></div></div>';
+  if(x.type === 'gift') return '<div class="mcard" onclick="editGift(\'' + x.id + '\')"><div style="flex:1;min-width:0"><div><span class="tag dd">경조사</span><span class="muted">' + esc(x.ev || '') + (x.d ? ' · ' + fmtDate(x.d, true) : '') + '</span></div><div class="mtext" style="font-weight:700;margin-top:4px">' + hl(x.nm, q) + ' · <span class="' + (x.dir === 'in' ? 'gin' : 'gout') + '">' + won(x.a) + (x.dir === 'in' ? ' 받음' : ' 냄') + '</span></div>' + (x.memo ? '<div class="mtext muted">' + hl(x.memo, q) + '</div>' : '') + '</div></div>';
+  if(x.type === 'ref') return '<div class="mcard" onclick="openRef(\'' + x.id + '\')"><div style="flex:1;min-width:0"><div><span class="tag ev">회사 규정</span><span class="muted">' + esc(x.cat || '') + '</span></div><div class="mtext" style="font-weight:700;margin-top:4px">' + hl(x.title, q) + '</div><div class="mtext muted">' + esc(String(x.body || '').split('\n')[0]) + '</div></div></div>';
+  if(x.type === 'link') return '<a class="mcard" href="' + esc(x.url) + '" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div style="flex:1;min-width:0"><div><span class="tag memo">바로가기</span></div><div class="mtext" style="font-weight:700;margin-top:4px">' + hl(x.title, q) + '</div></div></a>';
   return '<div class="mcard" onclick="editDday(\'' + x.id + '\')"><div style="flex:1;min-width:0"><div><span class="tag dd">D-day</span><span class="muted">' + esc(ddDateLabel(x)) + '</span></div><div class="mtext" style="font-weight:700;margin-top:4px">' + hl(x.title, q) + '</div></div></div>';
 }
 function renderFindResults(){
@@ -807,9 +861,9 @@ async function runAiSearch(fromVoice){
     return;
   }
   aiFind = {q, busy:true, answer:'', ids:[], failed:false}; renderFindResults();
-  const typeName = {event:'일정', memo:'메모', dday:'D-day'};
+  const typeName = {event:'일정', memo:'메모', dday:'D-day', gift:'경조사', ref:'회사규정', link:'바로가기'};
   const items = live().slice().sort((a, b) => (b.updated || 0) - (a.updated || 0)).slice(0, 600)
-    .map(x => x.id + '|' + typeName[x.type] + '|' + (x.date || '') + (x.time ? ' ' + x.time : '') + '|' + String(x.type === 'memo' ? x.text : x.title + (x.note ? ' — ' + x.note : '')).replace(/\s+/g, ' ').slice(0, 150));
+    .map(x => x.id + '|' + typeName[x.type] + '|' + (x.date || '') + (x.time ? ' ' + x.time : '') + '|' + String(x.type === 'gift' ? x.nm + ' ' + x.ev + ' ' + won(x.a) + (x.dir === 'in' ? ' 받음' : ' 냄') : itemText(x)).replace(/\s+/g, ' ').slice(0, 150));
   const res = await aiCall({action:'search', query:q, items}, 15000);
   if(findQ.trim() !== q) return;
   aiFind = res ? {q, busy:false, answer: String(res.answer || ''), ids: Array.isArray(res.ids) ? res.ids : [], failed:false} : {q, busy:false, answer:'', ids:[], failed:true};
@@ -818,6 +872,147 @@ async function runAiSearch(fromVoice){
     if(res) speak(aiFind.answer);
     else { const n = searchItems(q).length; speak(n ? q + ', ' + n + '건 찾았어요.' : q + ', 찾지 못했어요.'); }
   }
+}
+
+// ---------- 서랍: 경조사 장부 · 회사 규정 · 바로가기 ----------
+let moreSub = 'gift', giftQ = '', giftSort = 'name', refQ = '', refCat = '';
+const gifts = () => live().filter(x => x.type === 'gift');
+const refs  = () => live().filter(x => x.type === 'ref').sort((a, b) => (a.ord || 0) - (b.ord || 0));
+const links = () => live().filter(x => x.type === 'link').sort((a, b) => (a.created || 0) - (b.created || 0));
+function renderMore(){
+  const subs = [['gift','경조사 장부'],['ref','회사 규정'],['link','바로가기']];
+  let h = '<div class="panel">' + panelHead('서랍', '경조사 장부 · 회사 규정 · 자주 가는 곳')
+    + '<div class="seg" style="margin-bottom:14px">' + subs.map(([k, l]) => '<button class="' + (moreSub === k ? 'on' : '') + '" onclick="moreSub=\'' + k + '\';renderMore()">' + l + '</button>').join('') + '</div>';
+  if(moreSub === 'gift') h += '<div class="row" style="flex-wrap:nowrap;margin-bottom:10px"><div class="search" style="flex:1;margin:0">' + IC.search + '<input id="giftInput" placeholder="이름·관계·메모로 찾기" value="' + esc(giftQ) + '" oninput="giftQ=this.value;renderDrawerBody()"></div><button class="btn pri" onclick="editGift(null)">+ 기록</button></div>'
+    + '<div class="seg" style="margin-bottom:12px">' + [['name','이름순'],['in','받은 순'],['out','낸 순'],['recent','최근']].map(([k, l]) => '<button class="' + (giftSort === k ? 'on' : '') + '" onclick="giftSort=\'' + k + '\';renderMore()">' + l + '</button>').join('') + '</div>';
+  if(moreSub === 'ref') h += '<div class="search" style="margin-bottom:10px">' + IC.search + '<input id="refInput" placeholder="예) 장인상, 연차, 대부" value="' + esc(refQ) + '" oninput="refQ=this.value;renderDrawerBody()"></div>'
+    + '<div class="chips">' + [['','전체'],['경조사','경조사'],['휴가','휴가'],['복지','복지·대부'],['절차','신청 절차']].map(([k, l]) => '<button class="chip' + (refCat === k ? ' on' : '') + '" onclick="refCat=\'' + k + '\';renderMore()">' + l + '</button>').join('') + '</div>'
+    + '<div class="refcard"><h4>연차 계산</h4><div class="row" style="flex-wrap:nowrap"><input type="date" id="f_join" style="flex:1" onchange="calcLeave()"><span id="leaveOut" style="font-weight:800;white-space:nowrap">입사일을 넣어 주세요</span></div><div class="muted" style="margin-top:6px">입사일 기준 계산 — 실제 부여일수는 관리부 확인</div></div>';
+  if(moreSub === 'link') h += '<div class="row" style="justify-content:flex-end;margin-bottom:10px"><button class="btn pri sm" onclick="editLink(null)">+ 바로가기</button></div>';
+  document.getElementById('tab-more').innerHTML = h + '<div id="drawerBody"></div></div>';
+  renderDrawerBody();
+}
+function renderDrawerBody(){
+  const box = document.getElementById('drawerBody'); if(!box) return;
+  if(moreSub === 'gift') box.innerHTML = giftListHtml();
+  else if(moreSub === 'ref') box.innerHTML = refListHtml();
+  else box.innerHTML = linkListHtml();
+}
+// 사람별로 묶기(이름 같으면 한 사람)
+function giftPeople(){
+  const map = new Map();
+  gifts().forEach(x => {
+    const k = String(x.nm || '').replace(/\s+/g, '');
+    if(!map.has(k)) map.set(k, {nm: x.nm, list: [], inSum: 0, outSum: 0, last: '', rel: '', grp: ''});
+    const p = map.get(k);
+    p.list.push(x);
+    if(x.dir === 'in') p.inSum += Number(x.a || 0); else p.outSum += Number(x.a || 0);
+    if(x.d && x.d > p.last) p.last = x.d;
+    p.rel = p.rel || x.rel || ''; p.grp = p.grp || x.grp || '';
+  });
+  return [...map.values()];
+}
+let giftOpen = '';
+function giftListHtml(){
+  const all = giftPeople();
+  const q = normalizeKo(giftQ);
+  let rows = q ? all.filter(p => normalizeKo(p.nm + p.rel + p.grp + p.list.map(x => x.memo || '').join('')).includes(q)) : all;
+  if(giftSort === 'in') rows.sort((a, b) => b.inSum - a.inSum);
+  else if(giftSort === 'out') rows.sort((a, b) => b.outSum - a.outSum);
+  else if(giftSort === 'recent') rows.sort((a, b) => (b.last || '').localeCompare(a.last || ''));
+  else rows.sort((a, b) => a.nm.localeCompare(b.nm, 'ko'));
+  const tin = gifts().filter(x => x.dir === 'in').reduce((t, x) => t + Number(x.a || 0), 0);
+  const tout = gifts().filter(x => x.dir === 'out').reduce((t, x) => t + Number(x.a || 0), 0);
+  let h = '<div class="gtot"><div><dt>받은 돈</dt><dd class="gin">' + won(tin) + '</dd></div><div><dt>낸 돈</dt><dd class="gout">' + won(tout) + '</dd></div><div><dt>사람</dt><dd>' + all.length + '명</dd></div></div>';
+  if(!all.length) return h + '<div class="empty">경조사 기록이 없어요.<br>"홍길동 장례식 10만원 냈어"처럼 말해도 돼요.</div>';
+  if(!rows.length) return h + '<div class="empty">"' + esc(giftQ) + '" — 없어요.</div>';
+  const shown = rows.slice(0, 200);
+  shown.forEach(p => {
+    const key = String(p.nm).replace(/\s+/g, '');
+    h += '<div class="gperson"><div class="gh" onclick="giftOpen=giftOpen===\'' + esc(key) + '\'?\'\':\'' + esc(key) + '\';renderDrawerBody()"><b>' + esc(p.nm) + (p.rel || p.grp ? ' <span class="tag memo" style="vertical-align:1px">' + esc(p.rel || p.grp) + '</span>' : '') + '</b>'
+      + (p.inSum ? '<span class="gin">받음 ' + won(p.inSum) + '</span>' : '') + (p.outSum ? '<span class="gout">냄 ' + won(p.outSum) + '</span>' : '') + '</div>';
+    if(giftOpen === key){
+      h += '<div class="gbody">';
+      p.list.sort((a, b) => (b.d || '').localeCompare(a.d || '')).forEach(x => {
+        h += '<div class="gline" onclick="editGift(\'' + x.id + '\')"><span class="' + (x.dir === 'in' ? 'gin' : 'gout') + '" style="font-weight:700;white-space:nowrap">' + (x.dir === 'in' ? '받음 ' : '냄 ') + won(x.a) + '</span><span class="m">' + esc([x.ev, x.d ? fmtDate(x.d, true) : '', x.memo].filter(Boolean).join(' · ')) + '</span></div>';
+      });
+      h += '<div class="row" style="margin-top:8px"><button class="btn sec sm" onclick="editGift(null,{nm:\'' + esc(p.nm).replace(/'/g, "\\'") + '\',dir:\'out\'})">+ 이 사람 기록</button></div></div>';
+    }
+    h += '</div>';
+  });
+  if(rows.length > shown.length) h += '<div class="muted" style="text-align:center;padding:8px">' + (rows.length - shown.length) + '명 더 — 검색으로 찾아 주세요</div>';
+  return h;
+}
+function giftSummary(q){
+  const k = normalizeKo(q).replace(/얼마.*$/, '').replace(/(한테|에게|님|씨)$/, '');
+  if(k.length < 2) return '';
+  const p = giftPeople().find(p => normalizeKo(p.nm) === k) || giftPeople().filter(p => normalizeKo(p.nm).includes(k)).sort((a, b) => a.nm.length - b.nm.length)[0];
+  if(!p) return '';
+  const say = a => a % 10000 === 0 ? (a / 10000) + '만 원' : a.toLocaleString('ko-KR') + '원';
+  return p.nm + ', 받은 돈 ' + (p.inSum ? say(p.inSum) : '없음') + ', 낸 돈 ' + (p.outSum ? say(p.outSum) : '없음') + '.';
+}
+function editGift(id, preset){
+  const x = id ? DB.items.find(i => i.id === id) : Object.assign({type:'gift', dir:'out', nm:'', a:'', ev:'결혼식', d: todayYmd(), rel:'', grp:'', memo:''}, preset || {});
+  if(!x) return;
+  const evs = ['결혼식','장례식','돌잔치','생일','기타'];
+  openModal('<h2>' + (id ? '경조사 기록 수정' : '경조사 기록') + '</h2>'
+    + '<div class="field"><div class="seg">' + [['out','내가 냄'],['in','내가 받음']].map(([k, l]) => '<button type="button" id="gd_' + k + '" class="' + (x.dir === k ? 'on' : '') + '" onclick="document.getElementById(\'gd_in\').className=\'\';document.getElementById(\'gd_out\').className=\'\';this.className=\'on\'">' + l + '</button>').join('') + '</div></div>'
+    + '<div class="row"><div class="field" style="flex:1.3"><label>이름</label><input id="g_nm" value="' + esc(x.nm) + '" placeholder="예) 홍길동"></div><div class="field" style="flex:1"><label>금액(원)</label><input id="g_a" inputmode="numeric" value="' + esc(x.a) + '" placeholder="100000"></div></div>'
+    + '<div class="row"><div class="field" style="flex:1"><label>종류</label><select id="g_ev">' + evs.map(e => '<option' + (x.ev === e ? ' selected' : '') + '>' + e + '</option>').join('') + '</select></div><div class="field" style="flex:1"><label>날짜</label><input type="date" id="g_d" value="' + esc(x.d || '') + '"></div></div>'
+    + '<div class="row"><div class="field" style="flex:1"><label>관계</label><input id="g_rel" value="' + esc(x.rel || '') + '" placeholder="친구·동료·친척"></div><div class="field" style="flex:1"><label>분류</label><input id="g_grp" value="' + esc(x.grp || '') + '" placeholder="가족·아버지 손님"></div></div>'
+    + '<div class="field"><label>메모</label><input id="g_memo" value="' + esc(x.memo || '') + '"></div>'
+    + '<div class="row" style="justify-content:space-between;margin-top:6px">'
+    + (id ? '<button class="btn warn" onclick="if(confirm(\'이 기록을 지울까요?\')){removeItem(\'' + id + '\');closeModal();toast(\'삭제했어요\')}">삭제</button>' : '<span></span>')
+    + '<div class="row"><button class="btn sec" onclick="closeModal()">닫기</button><button class="btn pri" onclick="saveGift(\'' + (id || '') + '\')">저장</button></div></div>');
+}
+function saveGift(id){
+  const nm = val('g_nm'), a = parseInt(val('g_a').replace(/[^\d]/g, ''), 10) || 0;
+  if(!nm || !a){ toast('이름과 금액을 넣어 주세요'); return; }
+  const x = id ? DB.items.find(i => i.id === id) : {id: uid(), type:'gift'};
+  Object.assign(x, {dir: document.getElementById('gd_in').className === 'on' ? 'in' : 'out', nm, a, ev: val('g_ev'), d: val('g_d') || null, rel: val('g_rel'), grp: val('g_grp'), memo: val('g_memo')});
+  upsert(x); closeModal(); toast('저장했어요');
+}
+function refListHtml(){
+  let list = refs().filter(x => !refCat || x.cat === refCat);
+  const q = refQ.trim();
+  if(q) list = searchItems(q).map(o => o.x).filter(x => x.type === 'ref' && (!refCat || x.cat === refCat));
+  if(!refs().length) return '<div class="empty">회사 규정 자료가 아직 없어요.<br>준비한 SQL을 실행하면 들어와요.</div>';
+  if(!list.length) return '<div class="empty">"' + esc(q) + '" — 없어요.</div>';
+  return list.map(x => '<div class="refcard" id="ref_' + x.id + '"><h4>' + (q ? hl(x.title, q) : esc(x.title)) + ' <span class="tag ev" style="vertical-align:2px">' + esc(x.cat || '') + '</span></h4><div class="rb">' + (q ? hl(x.body || '', q) : esc(x.body || '')) + '</div></div>').join('')
+    + '<div class="muted" style="margin-top:6px">' + esc((refs().find(x => x.src) || {}).src || '') + '</div>';
+}
+function openRef(id){ moreSub = 'ref'; refQ = ''; refCat = ''; showTab('more'); setTimeout(() => { const el = document.getElementById('ref_' + id); if(el) el.scrollIntoView({block: 'center'}); }, 50); }
+function calcLeave(){
+  const v = val('f_join'), out = document.getElementById('leaveOut'); if(!v){ out.textContent = '입사일을 넣어 주세요'; return; }
+  const j = parseYmd(v), t = parseYmd(todayYmd());
+  if(j > t){ out.textContent = '미래 날짜예요'; return; }
+  let months = (t.getFullYear() - j.getFullYear()) * 12 + (t.getMonth() - j.getMonth()); if(t.getDate() < j.getDate()) months--;
+  const years = Math.floor(months / 12);
+  const days = years < 1 ? Math.min(11, months) : Math.min(25, 15 + Math.floor((years - 1) / 2));
+  out.textContent = (years < 1 ? months + '개월' : '만 ' + years + '년') + ' · ' + days + '일';
+}
+function linkListHtml(){
+  const list = links();
+  if(!list.length) return '<div class="empty">자주 가는 곳을 넣어 두세요.<br>예) 식용유 원가계산 툴, 하이브 규정 공유 페이지</div>';
+  return list.map(x => '<div style="display:flex;gap:6px;align-items:stretch"><a class="linkbtn" style="flex:1" href="' + esc(x.url) + '" target="_blank" rel="noopener"><span>' + esc(x.title) + '<br><small>' + esc(x.url) + '</small></span><span>' + IC.right + '</span></a><button class="icon-btn" style="height:auto;margin-bottom:8px" onclick="editLink(\'' + x.id + '\')" aria-label="수정">⋯</button></div>').join('');
+}
+function editLink(id){
+  const x = id ? DB.items.find(i => i.id === id) : {type:'link', title:'', url:''};
+  if(!x) return;
+  openModal('<h2>' + (id ? '바로가기 수정' : '바로가기 추가') + '</h2>'
+    + '<div class="field"><label>이름</label><input id="l_title" value="' + esc(x.title) + '" placeholder="예) 식용유 원가계산 툴"></div>'
+    + '<div class="field"><label>주소</label><input id="l_url" value="' + esc(x.url) + '" placeholder="https://..." inputmode="url"></div>'
+    + '<div class="row" style="justify-content:space-between;margin-top:6px">'
+    + (id ? '<button class="btn warn" onclick="if(confirm(\'이 바로가기를 지울까요?\')){removeItem(\'' + id + '\');closeModal();toast(\'삭제했어요\')}">삭제</button>' : '<span></span>')
+    + '<div class="row"><button class="btn sec" onclick="closeModal()">닫기</button><button class="btn pri" onclick="saveLink(\'' + (id || '') + '\')">저장</button></div></div>');
+}
+function saveLink(id){
+  const title = val('l_title'); let url = val('l_url');
+  if(!title || !url){ toast('이름과 주소를 넣어 주세요'); return; }
+  if(!/^https?:\/\//i.test(url)) url = 'https://' + url;
+  const x = id ? DB.items.find(i => i.id === id) : {id: uid(), type:'link'};
+  Object.assign(x, {title, url});
+  upsert(x); closeModal(); toast('저장했어요');
 }
 
 // ---------- 편집 창 ----------
@@ -832,6 +1027,7 @@ function editEvent(id, date){
     + '<div class="field"><label>제목</label><input id="f_title" value="' + esc(x.title) + '" placeholder="예) 면접"></div>'
     + '<div class="row"><div class="field" style="flex:1"><label>날짜</label><input type="date" id="f_date" value="' + esc(x.date) + '"></div>'
     + '<div class="field" style="flex:1"><label>시간 (비우면 종일)</label><input type="time" id="f_time" value="' + esc(x.time || '') + '"></div></div>'
+    + '<div class="field"><label>반복</label><select id="f_repeat"><option value="">반복 없음</option><option value="monthly"' + (x.repeat === 'monthly' ? ' selected' : '') + '>매월 같은 날</option></select></div>'
     + '<div class="field"><label>메모</label><textarea id="f_note" placeholder="장소·준비물 등">' + esc(x.note || '') + '</textarea></div>'
     + '<div class="row" style="justify-content:space-between;margin-top:6px">'
     + (id ? '<button class="btn warn" onclick="if(confirm(\'이 일정을 지울까요?\')){removeItem(\'' + id + '\');closeModal();toast(\'삭제했어요\')}">삭제</button>' : '<span></span>')
@@ -842,7 +1038,7 @@ function saveEvent(id){
   const title = val('f_title'), date = val('f_date');
   if(!title || !date){ toast('제목과 날짜를 넣어 주세요'); return; }
   const x = id ? DB.items.find(i => i.id === id) : {id: uid(), type:'event'};
-  Object.assign(x, {title, date, time: val('f_time') || null, note: val('f_note')});
+  Object.assign(x, {title, date, time: val('f_time') || null, note: val('f_note'), repeat: val('f_repeat') || null});
   upsert(x); closeModal(); toast('저장했어요');
 }
 function editMemo(id, date){
@@ -1011,12 +1207,16 @@ async function onAsk(fromVoice){
   if(p.kind === 'find'){
     document.getElementById('preview').classList.remove('show');
     findQ = p.query; inp.value = ''; showTab('find');
+    const gs = giftSummary(p.query);
+    if(gs){ if(fromVoice) speak(gs); toast(gs); runAiSearch(false); return; }
     runAiSearch(fromVoice);
     return;
   }
   PENDING = p; showPreview(fromVoice);
 }
+function won(a){ return Number(a || 0).toLocaleString('ko-KR') + '원'; }
 function pvSummary(p){
+  if(p.kind === 'gift') return p.nm + ' · ' + p.ev + ' · ' + won(p.a) + (p.dir === 'in' ? ' 받음' : ' 냄') + ' (' + fmtDate(p.date) + ')';
   if(p.kind === 'event') return fmtDate(p.date) + (p.time ? ' ' + fmtTime(p.time) : ' 종일') + ' · ' + p.title;
   if(p.kind === 'dday') return p.title + ' · ' + ddDateLabel({kind: p.ddKind || 'since', date: p.date, lunar: p.lunar, noYear: p.noYear}) + (p.ddKind === 'yearly' ? '' : ' · ' + DD_KIND[p.ddKind || 'since']);
   return p.text + (p.date ? ' (' + fmtDate(p.date) + ')' : '');
@@ -1026,6 +1226,7 @@ function speakSummary(p){
     const d = parseYmd(p.date);
     return (d.getMonth()+1) + '월 ' + d.getDate() + '일 ' + DOW[d.getDay()] + '요일 ' + (p.time ? fmtTime(p.time) + ' ' : '') + p.title + ', 일정에 넣을게요.';
   }
+  if(p.kind === 'gift') return p.nm + ', ' + p.ev + ', ' + (p.a % 10000 === 0 ? (p.a / 10000) + '만 원' : p.a + '원') + (p.dir === 'in' ? ' 받은' : ' 낸') + ' 걸로 경조사 장부에 적을게요.';
   if(p.kind === 'dday'){
     const b = ymdParts(p.date);
     return p.title + ', ' + (p.lunar ? '음력 ' : '') + (p.noYear ? '' : b.y + '년 ') + b.m + '월 ' + b.d + '일, ' + (p.ddKind === 'yearly' ? '매년 기념일로' : '디데이로') + ' 등록할게요.';
@@ -1035,7 +1236,7 @@ function speakSummary(p){
 function showPreview(fromVoice){
   const p = PENDING;
   clearInterval(pvTimer);
-  const tag = {event:'<span class="tag ev">일정</span>', memo:'<span class="tag memo">메모</span>', dday:'<span class="tag dd">D-day</span>'}[p.kind];
+  const tag = {event:'<span class="tag ev">일정</span>', memo:'<span class="tag memo">메모</span>', dday:'<span class="tag dd">D-day</span>', gift:'<span class="tag dd">경조사</span>'}[p.kind];
   let h = '<div class="sum">' + tag + esc(pvSummary(p)) + '</div>';
   if(p.notes && p.notes.length) h += '<div class="hint">' + esc(p.notes.join(' · ')) + '</div>';
   h += '<div class="row"><button class="btn pri" id="pvSave" onclick="confirmPending()">저장</button>'
@@ -1071,7 +1272,9 @@ function pendingEdit(forceKind){
   clearInterval(pvTimer);
   const p = PENDING; if(!p) return;
   cancelPending(true);
-  if(!forceKind && p.kind === 'dday'){
+  if(!forceKind && p.kind === 'gift'){
+    editGift(null, {dir: p.dir, nm: p.nm, a: p.a, ev: p.ev, d: p.date});
+  } else if(!forceKind && p.kind === 'dday'){
     editDday(null);
     const b = ymdParts(p.date);
     document.getElementById('f_dtitle').value = p.title;
@@ -1091,8 +1294,10 @@ function pendingEdit(forceKind){
 function confirmPending(){
   clearInterval(pvTimer);
   const p = PENDING; if(!p) return;
-  if(p.kind === 'event'){
-    upsert({id: uid(), type:'event', date: p.date, time: p.time || null, title: p.title, note: '', src: 'ask'});
+  if(p.kind === 'gift'){
+    upsert({id: uid(), type:'gift', dir: p.dir, nm: p.nm, a: p.a, ev: p.ev, d: p.date, rel:'', grp:'', memo:'', src:'ask'});
+  } else if(p.kind === 'event'){
+    upsert({id: uid(), type:'event', date: p.date, time: p.time || null, title: p.title, note: '', src: 'ask', repeat: p.repeat || null});
     selectDate(p.date);
     if(TAB !== 'cal') showTab('cal');
   } else if(p.kind === 'dday'){

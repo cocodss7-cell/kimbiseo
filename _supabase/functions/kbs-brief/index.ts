@@ -43,7 +43,7 @@ function lunarToSolar(y: number, m: number, d: number): Date | null {
   return utc(c.year, c.month, c.day);
 }
 
-type Item = { id: string; type: string; date?: string | null; time?: string | null; title?: string; text?: string; done?: boolean; kind?: string; lunar?: boolean; noYear?: boolean };
+type Item = { id: string; type: string; date?: string | null; time?: string | null; title?: string; text?: string; done?: boolean; kind?: string; lunar?: boolean; noYear?: boolean; repeat?: string | null };
 
 // 앱(ddayInfo·yearlyNext)과 같은 계산: 다가오는 기념일까지 남은 날
 function ddayNext(x: Item, today: Date): { left: number; label: string } | null {
@@ -83,7 +83,13 @@ const remind = (left: number) => left <= 7 || left === 14 || left === 30;
 
 function brief(items: Item[], today: Date) {
   const t = ymd(today), tm = ymd(new Date(today.getTime() + DAY));
-  const evLine = (d: string) => items.filter((x) => x.type === "event" && x.date === d)
+  // 매월 반복 일정(앱 monthlyHits와 같은 규칙: 시작일 이후 매달 같은 날, 그날이 없으면 말일)
+  const monthly = (x: Item, d: string) => {
+    if (x.repeat !== "monthly" || !x.date || d < x.date) return false;
+    const b = parts(x.date), p = parts(d);
+    return p.d === Math.min(b.d, new Date(Date.UTC(p.y, p.m, 0)).getUTCDate());
+  };
+  const evLine = (d: string) => items.filter((x) => x.type === "event" && (x.date === d || monthly(x, d)))
     .sort((a, b) => (a.time ?? "99").localeCompare(b.time ?? "99"))
     .map((x) => (x.time ? x.time + " " : "") + (x.title ?? ""));
   const today_ = evLine(t), tomorrow = evLine(tm);
