@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v5-brief">
+<meta name="app-build-version" content="v5.1-brief">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v5-brief';</script>
+<script>window.APP_BUILD = 'v5.1-brief';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -1280,7 +1280,15 @@ async function pushTest(){
     const {data, error} = await SB.functions.invoke('kbs-brief', {body: {action: 'test'}});
     if(error) throw error;
     toast(data && data.sent ? '테스트 알림을 보냈어요 — 몇 초 안에 와요' : '보낼 기기가 없어요 — 알림을 다시 켜 주세요');
-  }catch(e){ toast('서버 함수(kbs-brief)가 아직 준비 안 됐어요'); }
+  }catch(e){
+    // 원인을 바로 알 수 있게: 404 = 함수 없음(배포 전), 401 = Verify JWT 켜짐 등, 500 = 비밀값·표 문제
+    const st = e && e.context && e.context.status;
+    let msg = '';
+    try{ const j = await e.context.json(); msg = j.message || j.error || j.msg || ''; }catch(_){}
+    toast(st === 404 ? '서버 함수 kbs-brief가 아직 없어요 — 배포가 필요해요'
+        : st === 401 ? '함수 설정에서 Verify JWT를 꺼 주세요 (401)'
+        : '알림 서버 오류' + (st ? ' ' + st : '') + (msg ? ': ' + String(msg).slice(0, 90) : ' — 네트워크 확인'));
+  }
 }
 
 // ---------- 공통 ----------
@@ -1288,7 +1296,7 @@ let toastT = null;
 function toast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
-  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2600);
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), msg.length > 30 ? 5000 : 2600);
 }
 document.addEventListener('keydown', e => { if(e.key === 'Escape'){ closeModal(); } });
 let rsT = null; window.addEventListener('resize', () => { clearTimeout(rsT); rsT = setTimeout(render, 150); });
