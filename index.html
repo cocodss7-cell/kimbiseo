@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v7-voice-find">
+<meta name="app-build-version" content="v7.1-voice-fix">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v7-voice-find';</script>
+<script>window.APP_BUILD = 'v7.1-voice-fix';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -1044,6 +1044,7 @@ function speak(text){
 }
 // 말하는 동안은 계속 듣고, 말이 2.2초 끊기면 끝. 처음엔 9초까지 기다림(빅스비로 연 직후 대비), 최대 30초.
 // 폰 Chrome이 중간에 듣기를 끊어도(말 사이 숨 고르기) 이어서 다시 들음.
+// ⚠️ continuous 모드는 안드로이드 Chrome이 중간 결과("내일"→"내일 11시"→…)를 각각 완성 문장으로 보내 말이 여러 번 붙음 → 한 마디씩 듣고 다시 켜는 방식.
 const REC_SILENCE_MS = 2200, REC_FIRST_WAIT_MS = 9000, REC_MAX_MS = 30000;
 let recWanted = false, recText = '', recSession = '', recStartAt = 0, recLastAt = 0, recSilenceT = null, recMaxT = null;
 function toggleMic(){
@@ -1061,15 +1062,14 @@ function spawnRec(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   const inp = document.getElementById('askInput');
   REC = new SR();
-  REC.lang = 'ko-KR'; REC.interimResults = true; REC.continuous = true;
+  REC.lang = 'ko-KR'; REC.interimResults = true; REC.continuous = false;
   REC.onstart = () => { document.getElementById('voiceGate').classList.add('hidden'); };
   REC.onresult = e => {
-    let fin = '', interim = '';
-    for(let i = 0; i < e.results.length; i++){ // 처음부터 다시 모음(폰에서 결과가 겹쳐 오는 경우 대비)
-      if(e.results[i].isFinal) fin += e.results[i][0].transcript; else interim += e.results[i][0].transcript;
-    }
-    recSession = fin;
-    inp.value = (recText + ' ' + fin + interim).replace(/\s+/g, ' ').trim();
+    // 이번 마디는 마지막 결과 하나만 씀(앞 결과를 이어 붙이지 않음 — 같은 말이 겹치는 것 방지)
+    const r = e.results[e.results.length - 1];
+    const cur = String(r[0].transcript || '').trim();
+    if(r.isFinal) recSession = cur;
+    inp.value = joinSpeech(recText, cur);
     recLastAt = Date.now();
     clearTimeout(recSilenceT);
     recSilenceT = setTimeout(() => { if(recWanted){ recWanted = false; try{ REC.stop(); }catch(_){ finishListening(); } } }, REC_SILENCE_MS);
@@ -1079,7 +1079,7 @@ function spawnRec(){
     else if(e.error === 'network'){ recWanted = false; toast('음성 인식은 인터넷이 필요해요'); }
   };
   REC.onend = () => {
-    recText = (recText + ' ' + recSession).replace(/\s+/g, ' ').trim(); recSession = '';
+    recText = joinSpeech(recText, recSession); recSession = '';
     if(recWanted){
       const now = Date.now();
       const waiting = !recText && now - recStartAt < REC_FIRST_WAIT_MS;           // 아직 말을 시작 안 함
@@ -1089,6 +1089,15 @@ function spawnRec(){
     finishListening();
   };
   try{ REC.start(); }catch(e){ recWanted = false; finishListening(); toast('마이크를 시작하지 못했어요'); }
+}
+// 앞 마디와 이어 붙이기 — 새 마디가 앞 말을 다시 포함해 오면(폰에서 가끔) 겹치지 않게
+function joinSpeech(prev, next){
+  prev = String(prev || '').replace(/\s+/g, ' ').trim(); next = String(next || '').replace(/\s+/g, ' ').trim();
+  if(!next) return prev;
+  if(!prev) return next;
+  if(next.startsWith(prev)) return next;
+  if(prev.endsWith(next) || prev.includes(next)) return prev;
+  return prev + ' ' + next;
 }
 function endListening(){
   recWanted = false; clearTimeout(recSilenceT);
