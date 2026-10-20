@@ -16,8 +16,14 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
 const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
-webpush.setVapidDetails("https://cocodss7-cell.github.io/kimbiseo/", Deno.env.get("VAPID_PUBLIC_KEY")!, Deno.env.get("VAPID_PRIVATE_KEY")!);
 const LUNAR = new KoreanLunarCalendar();
+// 비밀값은 앞뒤 빈칸·줄바꿈을 지우고 씀(붙여넣기 실수 대비). 문제가 있으면 함수가 죽지 않고 원인을 돌려줌
+const env = (k: string) => (Deno.env.get(k) ?? "").trim();
+let vapidError = "";
+try {
+  if (!env("VAPID_PUBLIC_KEY") || !env("VAPID_PRIVATE_KEY")) throw new Error("VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY 비밀값이 없어요");
+  webpush.setVapidDetails("https://cocodss7-cell.github.io/kimbiseo/", env("VAPID_PUBLIC_KEY"), env("VAPID_PRIVATE_KEY"));
+} catch (e) { vapidError = "VAPID 키 오류: " + String((e as Error).message ?? e); }
 
 // ---------- 한국 날짜 (UTC 자정 Date 하나 = 한국 날짜 하루) ----------
 const DOW = ["일", "월", "화", "수", "목", "금", "토"];
@@ -116,11 +122,12 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "method" }, 405);
   const today = kstToday();
+  if (vapidError) return json({ error: "vapid", message: vapidError }, 500);
 
   try {
     // 1) 매시 정각 예약 실행
-    const secret = Deno.env.get("CRON_SECRET") ?? "";
-    if (secret && req.headers.get("x-cron-secret") === secret) {
+    const secret = env("CRON_SECRET");
+    if (secret && (req.headers.get("x-cron-secret") ?? "").trim() === secret) {
       const hour = kstHour();
       const { data: subs, error } = await sb.from("kbs_push").select("endpoint,p256dh,auth,user_id,last_sent").eq("hour", hour);
       if (error) throw error;
