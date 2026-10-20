@@ -153,6 +153,7 @@ Deno.serve(async (req: Request) => {
     if (!subs?.length) return json({ ok: true, sent: 0, gone: 0, note: "no_subscription" });
     return json({ ok: true, ...(await sendTo(u.user.id, subs, today)) });
   } catch (e) {
-    return json({ error: "server", message: String(e) }, 500);
+    const m = e instanceof Error ? e.message : (e && typeof e === "object" ? [(e as Record<string, unknown>).code, (e as Record<string, unknown>).message].filter(Boolean).join(" ") || JSON.stringify(e) : String(e));
+    return json({ error: "server", message: m }, 500);
   }
 });

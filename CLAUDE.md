@@ -51,6 +51,7 @@
 - Edge Function `kbs-ai`: `_supabase/functions/kbs-ai/index.ts`. 비밀값 `ANTHROPIC_API_KEY`(필수)·`OWNER_EMAIL`(선택). 로그인 토큰 확인 후에만 Claude 호출.
 - 설치 순서: `_supabase/설치_안내.md`. `_supabase/`는 밑줄 폴더라 Pages에 안 올라감(공개 저장소에는 보임 — 비밀값 넣지 말 것).
 - 앱 코드의 URL·publishable 키는 공개용(보호는 RLS).
+- ⚠️ 프로젝트 생성 시 'Automatically expose new tables' 끔 → 새 표는 service_role에도 권한이 없음. 서버 함수가 쓰는 표는 `grant ... to service_role` 필요(`04_service_role_권한.sql`). 10-20 테스트 알림 500 '[object Object]' 원인(추정).
 
 ## 디자인 규칙
 - 브랜드(v5): 낙서형 손글씨 워드마크(`.brand`, 인라인 SVG), 색 남색 #22223B·코랄 #FF6B6B·노랑 #FFD166 — 식용유니버스 색(딥그린·원자 궤도) 쓰지 않음.

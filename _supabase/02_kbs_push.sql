@@ -24,6 +24,7 @@ create policy kbs_push_own_delete on public.kbs_push for delete to authenticated
 revoke all on public.kbs_push from anon;
 revoke all on public.kbs_push from authenticated;
 grant select, insert, update, delete on public.kbs_push to authenticated;
+grant select, insert, update, delete on public.kbs_push to service_role;  -- 서버 함수용
 
 -- 확인: kbs_push | true
 select tablename, rowsecurity from pg_tables where schemaname = 'public' and tablename = 'kbs_push';

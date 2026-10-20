@@ -46,6 +46,7 @@ create policy kbs_own_delete on public.kbs_items for delete to authenticated usi
 revoke all on public.kbs_items from anon;
 revoke all on public.kbs_items from authenticated;
 grant select, insert, update, delete on public.kbs_items to authenticated;
+grant select, insert, update, delete on public.kbs_items to service_role;  -- 서버 함수용
 
 -- 확인: 아래가 1줄(rowsecurity = true) 나오면 정상
 select tablename, rowsecurity from pg_tables where schemaname = 'public' and tablename = 'kbs_items';
