@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v7.2-wispr">
+<meta name="app-build-version" content="v7.3-wispr-direct">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v7.2-wispr';</script>
+<script>window.APP_BUILD = 'v7.3-wispr-direct';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -1407,8 +1407,9 @@ function autoVoiceOn(){ try{ return localStorage.getItem('kbs_auto_voice') === '
 function setAutoVoice(on){ try{ localStorage.setItem('kbs_auto_voice', on ? '1' : '0'); }catch(e){} toast(on ? '앱을 열면 바로 들을게요' : '바로 듣기를 껐어요'); }
 function startVoiceGate(){
   if(recOn || document.getElementById('modal').classList.contains('show')) return;
+  // Wispr 모드: 큰 마이크 화면 없이 바로 입력칸 선택 — 입력칸이 잡히면 Wispr 떠 있는 버튼이 바로 떠서 한 번에 말할 수 있음(폰에 따라 키보드는 안 뜰 수 있음)
+  if(voiceMode() === 'wispr'){ setTimeout(focusAskForWispr, 300); return; }
   document.getElementById('voiceGate').classList.remove('hidden');
-  if(voiceMode() === 'wispr') return; // Wispr는 화면을 눌러야(키보드가 떠야) 쓸 수 있음
   setTimeout(() => { try{ if(!recOn) toggleMic(); }catch(e){} }, 400);
 }
 if(/[?&]voice=1/.test(location.search) || autoVoiceOn()){
