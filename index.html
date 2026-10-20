@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v7.3-wispr-direct">
+<meta name="app-build-version" content="v8-pc-mini">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v7.3-wispr-direct';</script>
+<script>window.APP_BUILD = 'v8-pc-mini';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -206,6 +206,24 @@ mark{background:var(--yellow);color:#000;border-radius:3px;padding:0 1px}
 .vgate{position:fixed;inset:0;z-index:55;background:rgba(10,14,12,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#fff;font-weight:700;font-size:18px}
 .vgate button{width:168px;height:168px;border-radius:50%;border:0;background:#FFD166;color:#22223B;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 40px rgba(0,0,0,.3)}
 .vgate button .ico{width:72px;height:72px;stroke-width:1.6}
+/* PC 작은 창 모드 (마우스 기기에서 창 폭 560px 미만) */
+body.mini .tabs, body.mini #topNav, body.mini .top .today{display:none}
+body.mini .top-in{height:52px;padding:0 12px}
+body.mini .top .brand svg{height:30px}
+body.mini .sync{margin-left:auto}
+body.mini .wrap{padding:10px 12px}
+body.mini .ask{bottom:0;padding-bottom:12px}
+body.mini .preview{bottom:76px}
+body.mini{padding-bottom:96px}
+.mini-sec{background:var(--card);border-radius:14px;padding:12px 14px;margin-bottom:10px;box-shadow:var(--shadow)}
+.mini-h{font-size:13px;font-weight:800;margin-bottom:6px;display:flex;gap:6px;align-items:baseline}
+.mini-h.today{color:var(--text)} .mini-h .muted{font-weight:500}
+.mini-row{display:flex;gap:8px;align-items:flex-start;padding:6px 0;cursor:pointer;border-top:1px solid var(--line)}
+.mini-h + .mini-row{border-top:0}
+.mini-row .t{flex:none;min-width:44px;font-size:12px;font-weight:700;color:var(--sub);padding-top:2px}
+.mini-row .b{flex:1;min-width:0;font-size:14px;word-break:break-all}
+.mini-row:hover .b{text-decoration:underline}
+.mini-empty{font-size:13px;color:var(--sub);padding:4px 0}
 .hidden{display:none!important}
 </style>
 </head>
@@ -221,6 +239,7 @@ mark{background:var(--yellow);color:#000;border-radius:3px;padding:0 1px}
   </nav>
   <span class="today" id="topToday"></span>
   <button class="sync" id="syncState" onclick="openSettings()" title="로그인·동기화"><i></i><span>이 기기</span></button>
+  <button class="icon-btn hidden" id="miniToggle" onclick="toggleMini()" title="작은 창 / 달력 보기" style="margin-right:6px;margin-left:4px"></button>
   <button class="icon-btn" onclick="openSettings()" aria-label="설정"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </div>
 </header>
@@ -230,6 +249,7 @@ mark{background:var(--yellow);color:#000;border-radius:3px;padding:0 1px}
   <section id="tab-memo" class="hidden"></section>
   <section id="tab-dday" class="hidden"></section>
   <section id="tab-find" class="hidden"></section>
+  <section id="tab-mini" class="hidden"></section>
 </main>
 
 <!-- 말하기·입력 미리보기 -->
@@ -512,7 +532,9 @@ const IC = {
   left: '<svg class="ico" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>',
   right: '<svg class="ico" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
   check: '<svg class="ico" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
-  search: '<svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>'
+  search: '<svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>',
+  cal: '<svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+  list: '<svg class="ico" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>'
 };
 const isNarrow = () => window.innerWidth < 640;
 
@@ -526,12 +548,68 @@ function showTab(t){
 }
 function render(){
   const n = new Date();
+  if(applyMini()){ renderMini(); return; }
   document.getElementById('topToday').textContent = n.getFullYear() + '년 ' + (n.getMonth()+1) + '월 ' + n.getDate() + '일 ' + DOW[n.getDay()] + '요일';
   if(TAB === 'cal') renderCal();
   if(TAB === 'memo') renderMemo();
   if(TAB === 'dday') renderDday();
   if(TAB === 'find'){ if(document.getElementById('findInput')) renderFindResults(); else renderFind(); }
 }
+// ---------- PC 작은 창 모드 ----------
+// 마우스로 쓰는 기기(PC)에서 창 폭이 560px 미만이면 오늘·앞으로 7일·다가오는 D-day·메모만 목록으로. 폰은 해당 없음.
+let miniOff = false; // '달력 보기'를 누르면 이 창에서는 작은 창 모드 끔
+const isPcNarrow = () => window.matchMedia('(pointer: fine)').matches && window.innerWidth < 560;
+function applyMini(){
+  const on = isPcNarrow() && !miniOff;
+  document.body.classList.toggle('mini', on);
+  ['cal','memo','dday','find'].forEach(k => document.getElementById('tab-' + k).classList.toggle('hidden', on || k !== TAB));
+  document.getElementById('tab-mini').classList.toggle('hidden', !on);
+  const btn = document.getElementById('miniToggle');
+  btn.classList.toggle('hidden', !isPcNarrow());
+  btn.innerHTML = on ? IC.cal : IC.list;
+  btn.title = on ? '달력 보기' : '작은 창 목록';
+  return on;
+}
+function toggleMini(){ miniOff = !miniOff; render(); }
+function miniRow(time, dot, text, onclick){
+  return '<div class="mini-row" onclick="' + onclick + '"><span class="t">' + time + '</span><span class="b"><i class="dot ' + dot + '" style="margin:0 6px 0 0;vertical-align:2px"></i>' + esc(text) + '</span></div>';
+}
+function renderMini(){
+  const today = parseYmd(todayYmd());
+  let h = '';
+  let any = false;
+  for(let i = 0; i < 7; i++){
+    const d = addDays(today, i), s = ymd(d);
+    const {ev, mm} = itemsOnDate(s);
+    const dd = ddaysOnDate(s);
+    if(i > 0 && !ev.length && !mm.length && !dd.length) continue;
+    any = any || i > 0;
+    const label = i === 0 ? '오늘' : i === 1 ? '내일' : (d.getMonth()+1) + '월 ' + d.getDate() + '일';
+    h += '<div class="mini-sec"><div class="mini-h' + (i === 0 ? ' today' : '') + '">' + label + ' <span class="muted">' + (i < 2 ? (d.getMonth()+1) + '월 ' + d.getDate() + '일 ' : '') + '(' + DOW[d.getDay()] + ')' + (i === 0 ? ' · 음 ' + lunarLabel(s) : '') + '</span></div>';
+    if(!ev.length && !mm.length && !dd.length) h += '<div class="mini-empty">일정이 없어요.</div>';
+    dd.forEach(o => h += miniRow('기념일', 'dd', o.label, "editDday('" + o.x.id + "')"));
+    ev.forEach(x => h += miniRow(x.time ? x.time.replace(/^0/, '') : '종일', 'ev', x.title, "editEvent('" + x.id + "')"));
+    mm.forEach(x => h += miniRow('메모', 'memo', x.text.split('\n')[0], "editMemo('" + x.id + "')"));
+    h += '</div>';
+  }
+  if(!any) h += '<div class="mini-sec"><div class="mini-empty">앞으로 7일 동안 다른 일정이 없어요.</div></div>';
+  // 다가오는 D-day (30일 안, 7일 안은 위에 이미 나옴)
+  const soon = ddays().map(x => ({x, i: ddayInfo(x)})).filter(o => o.i.soon != null && o.i.soon >= 7 && o.i.soon <= 30).sort((a, b) => a.i.soon - b.i.soon).slice(0, 5);
+  if(soon.length){
+    h += '<div class="mini-sec"><div class="mini-h">다가오는 기념일</div>';
+    soon.forEach(o => h += miniRow('D-' + o.i.soon, 'dd', o.x.title, "editDday('" + o.x.id + "')"));
+    h += '</div>';
+  }
+  // 날짜 없는 진행 중 메모 (최근 5개)
+  const open = memos().filter(x => !x.done && !x.date).sort((a, b) => (b.created || 0) - (a.created || 0)).slice(0, 5);
+  if(open.length){
+    h += '<div class="mini-sec"><div class="mini-h">메모</div>';
+    open.forEach(x => h += miniRow('', 'memo', x.text.split('\n')[0], "editMemo('" + x.id + "')"));
+    h += '</div>';
+  }
+  document.getElementById('tab-mini').innerHTML = h;
+}
+
 function panelHead(title, sub, right){
   return '<div class="phead"><div><h2>' + title + '</h2><span class="psub">' + sub + '</span></div>' + (right || '') + '</div>';
 }
