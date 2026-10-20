@@ -18,10 +18,11 @@
 - 작업 브랜치에 커밋·푸시 후 버전·수정 위치·영향 범위 보고. 운영자가 **"올려줘"** 할 때만 main 반영.
 - 개인 데이터: 저장소는 Public(GitHub Pages)이므로 **데이터·API 키를 절대 커밋하지 않는다.** Claude API 키는 Supabase Edge Function 비밀값으로만.
 
-## 데이터 구조 (v1: localStorage `kbs_data_v1` = `{ver, items:[]}`)
+## 데이터 구조 (localStorage `kbs_data_v1` = `{ver, items:[], dirty:[], lastPull, syncUser}`)
 - 일정 `{id, type:'event', date:'YYYY-MM-DD', time:'HH:MM'|null, title, note, created, updated, src?}`
 - 메모 `{id, type:'memo', text, date|null, done, created, updated}`
 - D-day `{id, type:'dday', title, date, kind:'since'|'until'|'yearly'}` — since는 첫날=1일.
+- 삭제는 `{id, type, created, deleted:true, updated}` 지움 표시로 남김(화면은 `live()`만 사용).
 - 설정 백업/불러오기(JSON, id 기준 합치기 — 기존 항목 유지).
 
 ## 주요 함수
@@ -32,12 +33,20 @@
 
 ## 단계
 - **v1 (완료)**: 화면 뼈대(달력·메모·D-day·찾기), 이 기기 저장, 규칙 해석, 음성 입력·읽어 주기, 백업.
-- **2단계**: Supabase 동기화(PC↔폰), Claude(Haiku) 해석·비슷한 뜻 찾기(Edge Function, 실패 시 규칙 해석 폴백), 음력 기념일.
+- **2단계 (v3 완료)**: Supabase 동기화(PC↔폰), Claude(Haiku) 해석·비슷한 뜻 찾기(Edge Function, 실패 시 규칙 해석 폴백). 음력 기념일은 남음.
 - **3단계**: 아침 브리핑 웹푸시(pg_cron + Edge Function), 빅스비 빠른 명령어 연결 안내.
 
 ## 이력
 - v1-skeleton (2026-10-20): 최초 뼈대.
 - v2-clean-ui (2026-10-20): 깔끔한 화면으로 정리(이모지 최소화) — 흰 머리글 + PC 상단 탭(폰은 하단 탭, 선 아이콘), 큰 흰 패널, 달력 칸 = 둥근 회색 상자 + 종류별 색 라벨(일정 초록·메모 노랑·D-day 주황), 체크 칩으로 종류 켜고 끄기(`calShow`), PC 오른쪽/폰 아래 '선택한 날' 패널(`sideHtml` — 그날 항목 + 30일 안 D-day). 오늘 = 날짜 숫자 검은 배지. 로직·저장 구조 불변.
+
+- v3-sync-ai (2026-10-20): 서버 연결. ① 본인 로그인(Supabase Auth 이메일·비번, 대시보드에서 만든 계정만 — 가입 차단) ② PC↔폰 동기화 `syncNow`(올리기: `DB.dirty` upsert → 내리기: `server_at` > `DB.lastPull`−5초, 1,000건씩), 병합 = `updated`(ms) 큰 쪽(`mergeRemote`), 삭제 = 지움 표시(`deleted`) 동기화, 첫 로그인 시 이 기기 기록 전부 올림(`DB.syncUser`). 수정 1.2초 뒤·화면 복귀·온라인 복귀·1분마다 동기화. 머리글 상태 표시(`#syncState`) ③ Claude 해석 `onAsk` → Edge Function `kbs-ai`(action parse, Haiku 5.5, structured outputs) → `fromAi` 검증 → 실패·7초 초과면 규칙 해석. D-day 등록도 말로 가능 ④ 찾기 Enter/음성 = Claude 비슷한 뜻 찾기(`runAiSearch`, action search — 최근 600건 요약 줄 전송) + 글자 일치 결과. supabase-js는 시작 후 비동기 로드(`sbLoad`) — 못 받아도 이 기기 모드로 동작.
+
+## 서버 (Supabase 프로젝트 `bqyepkbajnnguhhcixfv`, 조직 kimbiseo Free)
+- 표 `kbs_items`(id, user_id, type, data jsonb, updated, deleted, server_at) — RLS 본인만, anon 권한 없음, 트리거 `kbs_items_before_write`(server_at 갱신 + 더 오래된 updated로 덮어쓰기 무시). SQL: `_supabase/01_kbs_items.sql`.
+- Edge Function `kbs-ai`: `_supabase/functions/kbs-ai/index.ts`. 비밀값 `ANTHROPIC_API_KEY`(필수)·`OWNER_EMAIL`(선택). 로그인 토큰 확인 후에만 Claude 호출.
+- 설치 순서: `_supabase/설치_안내.md`. `_supabase/`는 밑줄 폴더라 Pages에 안 올라감(공개 저장소에는 보임 — 비밀값 넣지 말 것).
+- 앱 코드의 URL·publishable 키는 공개용(보호는 RLS).
 
 ## 디자인 규칙
 - 이모지 쓰지 않음(아이콘은 인라인 SVG 선 아이콘 `IC`). 색 토큰: `--ev-*`(일정)·`--mm-*`(메모)·`--dd-*`(D-day), 다크모드 토큰 별도.

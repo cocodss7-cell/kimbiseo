@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#0F2419">
-<meta name="app-build-version" content="v2-clean-ui">
+<meta name="app-build-version" content="v3-sync-ai">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v2-clean-ui';</script>
+<script>window.APP_BUILD = 'v3-sync-ai';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -55,6 +55,12 @@ textarea{resize:vertical;min-height:90px;line-height:1.5}
 .top nav button{background:none;border:0;padding:0 14px;height:100%;font-size:15px;color:var(--sub);font-weight:600;border-bottom:2px solid transparent}
 .top nav button.on{color:var(--text);border-bottom-color:var(--text)}
 .top .today{margin-left:auto;font-size:13px;color:var(--sub);white-space:nowrap}
+.sync{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--sub);background:none;border:0;padding:4px 6px;white-space:nowrap}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--line);display:inline-block}
+.sync.ok i{background:var(--ev-dot)} .sync.busy i{background:var(--mm-dot)} .sync.err i{background:var(--sun)}
+@media (max-width:640px){ .top .today{display:none} .sync{margin-left:auto} }
+.aibox{background:var(--ev-bg);color:var(--ev-tx);border-radius:12px;padding:12px 14px;margin-bottom:12px;font-weight:600;line-height:1.5}
+.find-sec{font-size:13px;font-weight:700;color:var(--sub);margin:14px 0 8px}
 .icon-btn{background:var(--cell);border:1px solid var(--line);border-radius:10px;width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;padding:0;color:var(--text)}
 @media (min-width:900px){ .top nav{display:flex} }
 
@@ -216,6 +222,7 @@ mark{background:var(--yellow);color:#000;border-radius:3px;padding:0 1px}
     <button data-tab="find" onclick="showTab('find')">찾기</button>
   </nav>
   <span class="today" id="topToday"></span>
+  <button class="sync" id="syncState" onclick="openSettings()" title="로그인·동기화"><i></i><span>이 기기</span></button>
   <button class="icon-btn" onclick="openSettings()" aria-label="설정"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </div>
 </header>
@@ -256,31 +263,39 @@ mark{background:var(--yellow);color:#000;border-radius:3px;padding:0 1px}
    다음 단계: Supabase 동기화 · Claude 해석 · 아침 알림
    ========================================================= */
 
-// ---------- 저장 ----------
+// ---------- 저장 (이 기기 + 로그인하면 서버 동기화) ----------
 const STORE_KEY = 'kbs_data_v1';
 let DB = loadDB();
 function loadDB(){
   try{
     const d = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
-    if(d && Array.isArray(d.items)) return d;
+    if(d && Array.isArray(d.items)){ if(!Array.isArray(d.dirty)) d.dirty = []; return d; }
   }catch(e){}
-  return {ver:1, items:[]};
+  return {ver:1, items:[], dirty:[], lastPull:null, syncUser:null};
 }
 function saveDB(){
   try{ localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }
   catch(e){ toast('저장 실패 — 저장 공간을 확인해 주세요'); }
 }
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function markDirty(id){ if(!DB.dirty.includes(id)) DB.dirty.push(id); }
 function upsert(item){
   item.updated = Date.now();
   const i = DB.items.findIndex(x => x.id === item.id);
   if(i >= 0) DB.items[i] = item; else { item.created = item.created || Date.now(); DB.items.push(item); }
-  saveDB(); render();
+  markDirty(item.id); saveDB(); render(); syncSoon();
 }
-function removeItem(id){ DB.items = DB.items.filter(x => x.id !== id); saveDB(); render(); }
-const events = () => DB.items.filter(x => x.type === 'event');
-const memos  = () => DB.items.filter(x => x.type === 'memo');
-const ddays  = () => DB.items.filter(x => x.type === 'dday');
+// 삭제 = 지움 표시만 남김(다른 기기에도 지워지게)
+function removeItem(id){
+  const x = DB.items.find(i => i.id === id); if(!x) return;
+  Object.keys(x).forEach(k => { if(!['id','type','created'].includes(k)) delete x[k]; });
+  x.deleted = true; x.updated = Date.now();
+  markDirty(id); saveDB(); render(); syncSoon();
+}
+const live   = () => DB.items.filter(x => !x.deleted);
+const events = () => live().filter(x => x.type === 'event');
+const memos  = () => live().filter(x => x.type === 'memo');
+const ddays  = () => live().filter(x => x.type === 'dday');
 
 // ---------- 날짜 도구 ----------
 const DOW = ['일','월','화','수','목','금','토'];
@@ -583,7 +598,7 @@ function searchItems(q){
   const words = q.split(/\s+/).map(w => w.replace(/(이랑|하고|에서|으로|에게|한테|은|는|이|가|을|를|에|도|랑|의|로)$/,'')).filter(w => w.length >= 1);
   if(!words.length) return [];
   const res = [];
-  DB.items.forEach(x => {
+  live().forEach(x => {
     const text = x.type === 'memo' ? x.text : (x.title + ' ' + (x.note || ''));
     const n = normalizeKo(text);
     let score = 0;
@@ -602,23 +617,60 @@ function hl(text, q){
 }
 function renderFind(){
   let h = '<div class="panel">' + panelHead('찾기', '일정·메모·D-day를 한 번에 찾아요.')
-    + '<div class="search">' + IC.search + '<input id="findInput" placeholder="기억나는 단어 (예: 지게차, 명함)" value="' + esc(findQ) + '" oninput="findQ=this.value;renderFindResults()"></div><div id="findRes"></div></div>';
+    + '<div class="row" style="flex-wrap:nowrap;margin-bottom:14px"><div class="search" style="flex:1;margin:0">' + IC.search
+    + '<input id="findInput" placeholder="기억나는 말 (예: 지게차 얘기, 명함)" value="' + esc(findQ) + '" oninput="findQ=this.value;renderFindResults()" onkeydown="if(event.key===\'Enter\')runAiSearch(false)"></div>'
+    + (SESSION ? '<button class="btn pri" onclick="runAiSearch(false)">찾기</button>' : '')
+    + '</div><div id="findRes"></div></div>';
   document.getElementById('tab-find').innerHTML = h;
   renderFindResults();
+}
+let aiFind = {q:'', busy:false, answer:'', ids:[], failed:false};
+function findCard(x, q){
+  if(x.type === 'event') return '<div class="mcard" onclick="editEvent(\'' + x.id + '\')"><div style="flex:1;min-width:0"><div><span class="tag ev">일정</span><span class="muted">' + fmtDate(x.date) + (x.time ? ' ' + fmtTime(x.time) : '') + '</span></div><div class="mtext" style="font-weight:700;margin-top:4px">' + hl(x.title, q) + '</div>' + (x.note ? '<div class="mtext muted">' + hl(x.note, q) + '</div>' : '') + '</div></div>';
+  if(x.type === 'memo') return '<div class="mcard" onclick="editMemo(\'' + x.id + '\')"><div style="flex:1;min-width:0"><div><span class="tag memo">메모</span><span class="muted">' + (x.date ? fmtDate(x.date) + ' · ' : '') + new Date(x.created).toLocaleDateString('ko-KR') + '</span></div><div class="mtext" style="margin-top:4px">' + hl(x.text, q) + '</div></div></div>';
+  return '<div class="mcard" onclick="editDday(\'' + x.id + '\')"><div style="flex:1;min-width:0"><div><span class="tag dd">D-day</span><span class="muted">' + fmtDate(x.date, true) + '</span></div><div class="mtext" style="font-weight:700;margin-top:4px">' + hl(x.title, q) + '</div></div></div>';
 }
 function renderFindResults(){
   const box = document.getElementById('findRes'); if(!box) return;
   const q = findQ.trim();
-  if(!q){ box.innerHTML = '<div class="empty">입력칸에 "지게차 얘기 언제였지?"라고 해도 돼요.</div>'; return; }
-  const r = searchItems(q);
-  if(!r.length){ box.innerHTML = '<div class="empty">"' + esc(q) + '" — 찾지 못했어요.<br><span class="muted">비슷한 뜻까지 찾는 기능은 다음 단계에서 붙여요.</span></div>'; return; }
-  let h = '<div class="muted" style="margin-bottom:8px">' + r.length + '건</div>';
-  r.forEach(({x}) => {
-    if(x.type === 'event') h += '<div class="mcard" onclick="editEvent(\'' + x.id + '\')"><div style="flex:1;min-width:0"><div><span class="tag ev">일정</span><span class="muted">' + fmtDate(x.date) + (x.time ? ' ' + fmtTime(x.time) : '') + '</span></div><div class="mtext" style="font-weight:700;margin-top:4px">' + hl(x.title, q) + '</div>' + (x.note ? '<div class="mtext muted">' + hl(x.note, q) + '</div>' : '') + '</div></div>';
-    else if(x.type === 'memo') h += '<div class="mcard" onclick="editMemo(\'' + x.id + '\')"><div style="flex:1;min-width:0"><div><span class="tag memo">메모</span><span class="muted">' + (x.date ? fmtDate(x.date) + ' · ' : '') + new Date(x.created).toLocaleDateString('ko-KR') + '</span></div><div class="mtext" style="margin-top:4px">' + hl(x.text, q) + '</div></div></div>';
-    else h += '<div class="mcard" onclick="editDday(\'' + x.id + '\')"><div style="flex:1;min-width:0"><div><span class="tag dd">D-day</span></div><div class="mtext" style="font-weight:700;margin-top:4px">' + hl(x.title, q) + '</div></div></div>';
-  });
+  if(!q){ box.innerHTML = '<div class="empty">입력칸에 "지게차 얘기 언제였지?"라고 해도 돼요.' + (SESSION ? '' : '<br><span class="muted">로그인하면 비슷한 뜻으로도 찾아요.</span>') + '</div>'; return; }
+  let h = '';
+  const shown = new Set();
+  if(aiFind.q === q){
+    if(aiFind.busy) h += '<div class="aibox">비슷한 뜻으로 찾는 중…</div>';
+    else if(aiFind.failed) h += '<div class="aibox" style="background:var(--cell);color:var(--sub)">비슷한 뜻 찾기에 실패했어요 — 글자가 같은 기록만 보여 드려요.</div>';
+    else {
+      h += '<div class="aibox">' + esc(aiFind.answer) + '</div>';
+      aiFind.ids.forEach(id => { const x = live().find(i => i.id === id); if(x){ shown.add(id); h += findCard(x, q); } });
+    }
+  }
+  const r = searchItems(q).filter(o => !shown.has(o.x.id));
+  if(r.length){
+    if(shown.size || aiFind.q === q) h += '<div class="find-sec">글자가 같은 기록 ' + r.length + '건</div>';
+    else h += '<div class="muted" style="margin-bottom:8px">' + r.length + '건' + (SESSION ? ' · Enter를 누르면 비슷한 뜻까지 찾아요' : '') + '</div>';
+    r.forEach(({x}) => h += findCard(x, q));
+  }
+  if(!h) h = '<div class="empty">"' + esc(q) + '" — 찾지 못했어요.' + (SESSION ? '<br><span class="muted">Enter를 누르면 비슷한 뜻까지 찾아요.</span>' : '<br><span class="muted">로그인하면 비슷한 뜻으로도 찾아요.</span>') + '</div>';
   box.innerHTML = h;
+}
+async function runAiSearch(fromVoice){
+  const q = findQ.trim(); if(!q) return;
+  if(!SESSION){
+    if(fromVoice){ const n = searchItems(q).length; speak(n ? q + ', ' + n + '건 찾았어요.' : q + ', 찾지 못했어요.'); }
+    return;
+  }
+  aiFind = {q, busy:true, answer:'', ids:[], failed:false}; renderFindResults();
+  const typeName = {event:'일정', memo:'메모', dday:'D-day'};
+  const items = live().slice().sort((a, b) => (b.updated || 0) - (a.updated || 0)).slice(0, 600)
+    .map(x => x.id + '|' + typeName[x.type] + '|' + (x.date || '') + (x.time ? ' ' + x.time : '') + '|' + String(x.type === 'memo' ? x.text : x.title + (x.note ? ' — ' + x.note : '')).replace(/\s+/g, ' ').slice(0, 150));
+  const res = await aiCall({action:'search', query:q, items}, 15000);
+  if(findQ.trim() !== q) return;
+  aiFind = res ? {q, busy:false, answer: String(res.answer || ''), ids: Array.isArray(res.ids) ? res.ids : [], failed:false} : {q, busy:false, answer:'', ids:[], failed:true};
+  if(TAB === 'find') renderFindResults();
+  if(fromVoice){
+    if(res) speak(aiFind.answer);
+    else { const n = searchItems(q).length; speak(n ? q + ', ' + n + '건 찾았어요.' : q + ', 찾지 못했어요.'); }
+  }
 }
 
 // ---------- 편집 창 ----------
@@ -696,7 +748,8 @@ function openSettings(){
     + '<div class="sec"><h3>화면</h3><div class="seg">'
     + [['auto','자동'],['light','밝게'],['dark','어둡게']].map(([k, l]) => '<button class="' + (theme === k ? 'on' : '') + '" onclick="setTheme(\'' + k + '\')">' + l + '</button>').join('')
     + '</div></div>'
-    + '<div class="sec"><h3>백업</h3><div class="muted" style="margin-bottom:10px">지금은 이 기기에만 저장돼요 (서버 동기화는 다음 단계). 폰 초기화·캐시 삭제 전에 꼭 백업해 두세요.</div>'
+    + accountHtml()
+    + '<div class="sec"><h3>백업</h3><div class="muted" style="margin-bottom:10px">' + (SESSION ? '로그인 중이라 서버에도 저장돼요. 그래도 가끔 파일로 받아 두면 안심이에요.' : '로그인 전에는 이 기기에만 저장돼요. 폰 초기화·캐시 삭제 전에 꼭 백업해 두세요.') + '</div>'
     + '<div class="row"><button class="btn sec sm" onclick="exportData()">백업 파일 받기</button>'
     + '<label class="btn sec sm" style="cursor:pointer">백업 불러오기<input type="file" accept=".json" class="hidden" onchange="importData(this.files[0])"></label></div>'
     + '<div class="muted" style="margin-top:10px">일정 ' + events().length + ' · 메모 ' + memos().length + ' · D-day ' + ddays().length + '</div></div>'
@@ -724,29 +777,56 @@ function importData(file){
       const d = JSON.parse(r.result);
       if(!d || !Array.isArray(d.items)) throw 0;
       const have = new Set(DB.items.map(x => x.id)); let add = 0;
-      d.items.forEach(x => { if(x && x.id && !have.has(x.id)){ DB.items.push(x); add++; } });
-      saveDB(); render(); closeModal(); toast('불러왔어요 — 새 항목 ' + add + '개 (기존 항목은 유지)');
+      d.items.forEach(x => { if(x && x.id && !have.has(x.id)){ DB.items.push(x); markDirty(x.id); add++; } });
+      saveDB(); render(); syncSoon(); closeModal(); toast('불러왔어요 — 새 항목 ' + add + '개 (기존 항목은 유지)');
     }catch(e){ toast('김비서 백업 파일이 아니에요'); }
   };
   r.readAsText(file);
 }
 
-// ---------- 입력 → 미리보기 → 저장 ----------
-let PENDING = null, pvTimer = null;
-function onAsk(fromVoice){
+// ---------- 입력 → 해석(로그인 시 Claude, 실패하면 규칙) → 미리보기 → 저장 ----------
+let PENDING = null, pvTimer = null, askSeq = 0;
+function todayContext(){
+  const n = new Date();
+  return todayYmd() + ' (' + DOW[n.getDay()] + '요일) ' + pad(n.getHours()) + ':' + pad(n.getMinutes());
+}
+// Claude 결과 검증 → 미리보기 형식. 이상하면 null(규칙 해석으로)
+function fromAi(a, raw){
+  if(!a || typeof a !== 'object') return null;
+  const okDate = v => /^\d{4}-\d{2}-\d{2}$/.test(v || '') && !isNaN(parseYmd(v).getTime());
+  const okTime = v => /^([01]\d|2[0-3]):[0-5]\d$/.test(v || '');
+  const notes = a.note ? [String(a.note).slice(0, 80)] : [];
+  const str = v => (typeof v === 'string' ? v.trim() : '');
+  if(a.kind === 'find' && str(a.query)) return {kind:'find', query: str(a.query)};
+  if(a.kind === 'event' && okDate(a.date) && str(a.title)) return {kind:'event', date:a.date, time: okTime(a.time) ? a.time : null, title: str(a.title), notes};
+  if(a.kind === 'dday' && okDate(a.date) && str(a.title)) return {kind:'dday', date:a.date, title: str(a.title), ddKind: ['since','until','yearly'].includes(a.dday_kind) ? a.dday_kind : 'since', notes};
+  if(a.kind === 'memo') return {kind:'memo', text: str(a.text) || raw, date: okDate(a.date) ? a.date : null, notes};
+  return null;
+}
+async function onAsk(fromVoice){
   const inp = document.getElementById('askInput');
   const text = inp.value.trim(); if(!text) return;
-  const p = parseCommand(text);
+  const seq = ++askSeq;
+  clearInterval(pvTimer);
+  let p = null;
+  if(SESSION && navigator.onLine){
+    document.getElementById('pvBox').innerHTML = '<div class="sum">' + esc(text) + '</div><div class="muted">알아듣는 중…</div><div class="row"><button class="btn sec" onclick="cancelPending()">취소</button></div>';
+    document.getElementById('preview').classList.add('show');
+    p = fromAi(await aiCall({action:'parse', text, today: todayContext()}, 7000), text);
+    if(seq !== askSeq) return; // 그사이 취소·새 입력
+  }
+  if(!p) p = parseCommand(text);
   if(p.kind === 'find'){
+    document.getElementById('preview').classList.remove('show');
     findQ = p.query; inp.value = ''; showTab('find');
-    const n = searchItems(findQ).length;
-    if(fromVoice) speak(n ? findQ + ', ' + n + '건 찾았어요.' : findQ + ', 찾지 못했어요.');
+    runAiSearch(fromVoice);
     return;
   }
   PENDING = p; showPreview(fromVoice);
 }
 function pvSummary(p){
   if(p.kind === 'event') return fmtDate(p.date) + (p.time ? ' ' + fmtTime(p.time) : ' 종일') + ' · ' + p.title;
+  if(p.kind === 'dday') return p.title + ' · ' + fmtDate(p.date, true) + ' · ' + DD_KIND[p.ddKind || 'since'];
   return p.text + (p.date ? ' (' + fmtDate(p.date) + ')' : '');
 }
 function speakSummary(p){
@@ -754,15 +834,20 @@ function speakSummary(p){
     const d = parseYmd(p.date);
     return (d.getMonth()+1) + '월 ' + d.getDate() + '일 ' + DOW[d.getDay()] + '요일 ' + (p.time ? fmtTime(p.time) + ' ' : '') + p.title + ', 일정에 넣을게요.';
   }
+  if(p.kind === 'dday'){
+    const d = parseYmd(p.date);
+    return p.title + ', ' + d.getFullYear() + '년 ' + (d.getMonth()+1) + '월 ' + d.getDate() + '일, 디데이로 등록할게요.';
+  }
   return '메모할게요. ' + p.text;
 }
 function showPreview(fromVoice){
   const p = PENDING;
   clearInterval(pvTimer);
-  let h = '<div class="sum">' + (p.kind === 'event' ? '<span class="tag ev">일정</span>' : '<span class="tag memo">메모</span>') + esc(pvSummary(p)) + '</div>';
+  const tag = {event:'<span class="tag ev">일정</span>', memo:'<span class="tag memo">메모</span>', dday:'<span class="tag dd">D-day</span>'}[p.kind];
+  let h = '<div class="sum">' + tag + esc(pvSummary(p)) + '</div>';
   if(p.notes && p.notes.length) h += '<div class="hint">' + esc(p.notes.join(' · ')) + '</div>';
   h += '<div class="row"><button class="btn pri" id="pvSave" onclick="confirmPending()">저장</button>'
-     + (p.kind === 'event' ? '<button class="btn sec" onclick="pendingAs(\'memo\')">메모로</button>' : '<button class="btn sec" onclick="pendingAs(\'event\')">일정으로</button>')
+     + (p.kind === 'event' ? '<button class="btn sec" onclick="pendingAs(\'memo\')">메모로</button>' : p.kind === 'memo' ? '<button class="btn sec" onclick="pendingAs(\'event\')">일정으로</button>' : '')
      + '<button class="btn sec" onclick="pendingEdit()">고치기</button>'
      + '<button class="btn sec" onclick="cancelPending()">취소</button></div>';
   document.getElementById('pvBox').innerHTML = h;
@@ -794,7 +879,12 @@ function pendingEdit(forceKind){
   clearInterval(pvTimer);
   const p = PENDING; if(!p) return;
   cancelPending(true);
-  if((forceKind || p.kind) === 'event'){
+  if(!forceKind && p.kind === 'dday'){
+    editDday(null);
+    document.getElementById('f_dtitle').value = p.title;
+    document.getElementById('f_ddate').value = p.date;
+    document.getElementById('f_dkind').value = p.ddKind || 'since';
+  } else if((forceKind || p.kind) === 'event'){
     editEvent(null, p.date || selDate);
     document.getElementById('f_title').value = p.title || p.text || '';
     if(p.time) document.getElementById('f_time').value = p.time;
@@ -810,6 +900,9 @@ function confirmPending(){
     upsert({id: uid(), type:'event', date: p.date, time: p.time || null, title: p.title, note: '', src: 'ask'});
     selectDate(p.date);
     if(TAB !== 'cal') showTab('cal');
+  } else if(p.kind === 'dday'){
+    upsert({id: uid(), type:'dday', title: p.title, date: p.date, kind: p.ddKind || 'since', src: 'ask'});
+    if(TAB !== 'dday') showTab('dday');
   } else {
     upsert({id: uid(), type:'memo', text: p.text, date: p.date || null, done: false, src: 'ask'});
   }
@@ -818,6 +911,7 @@ function confirmPending(){
 }
 function cancelPending(silent){
   clearInterval(pvTimer);
+  askSeq++;
   PENDING = null;
   document.getElementById('preview').classList.remove('show');
   document.getElementById('askInput').value = '';
@@ -863,6 +957,142 @@ function toggleMic(){
   try{ REC.start(); }catch(e){ toast('마이크를 시작하지 못했어요'); }
 }
 
+// ---------- 서버 (Supabase: 본인 로그인 · PC↔폰 동기화 · Claude) ----------
+// 공개용 주소·키 — 실제 보호는 DB 권한 규칙(RLS: 본인 기록만)
+const SB_URL = 'https://bqyepkbajnnguhhcixfv.supabase.co';
+const SB_KEY = 'sb_publishable_AwVceidlNTz43YGKsIwh0w_G5X0g5kS';
+const SB_LIB = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js';
+let SB = null, SESSION = null, syncing = false, syncT = null, lastSyncAt = 0, syncErr = '';
+function sbLoad(){
+  if(window.supabase) return sbInit();
+  const sc = document.createElement('script');
+  sc.src = SB_LIB; sc.async = true;
+  sc.onload = sbInit;
+  sc.onerror = () => { syncErr = '서버 연결 도구를 불러오지 못했어요 (인터넷 확인)'; updateSyncBadge(); };
+  document.head.appendChild(sc);
+}
+function sbInit(){
+  if(SB || !window.supabase) return;
+  try{
+    SB = window.supabase.createClient(SB_URL, SB_KEY, {auth: {persistSession: true, autoRefreshToken: true, storageKey: 'kbs_auth'}});
+  }catch(e){ SB = null; syncErr = '서버 연결 실패'; updateSyncBadge(); return; }
+  SB.auth.getSession().then(({data}) => { SESSION = data.session || null; onAuthChanged(); });
+  SB.auth.onAuthStateChange((ev, sess) => {
+    const before = SESSION ? SESSION.user.id : null;
+    SESSION = sess || null;
+    if((SESSION ? SESSION.user.id : null) !== before) onAuthChanged();
+  });
+}
+function onAuthChanged(){
+  if(SESSION && DB.syncUser !== SESSION.user.id){
+    // 이 계정으로 처음 동기화: 이 기기 기록을 전부 올리고 서버 기록을 처음부터 받음
+    DB.syncUser = SESSION.user.id; DB.lastPull = null;
+    DB.items.forEach(x => markDirty(x.id));
+    saveDB();
+  }
+  updateSyncBadge();
+  if(SESSION) syncNow();
+  render();
+}
+function syncSoon(){ if(!SESSION) return; clearTimeout(syncT); syncT = setTimeout(syncNow, 1200); }
+function mergeRemote(r){
+  const it = Object.assign({}, r.data || {}, {id: r.id, type: r.type, updated: Number(r.updated) || 0});
+  if(r.deleted) it.deleted = true; else delete it.deleted;
+  const i = DB.items.findIndex(x => x.id === r.id);
+  if(i < 0) DB.items.push(it);
+  else if(it.updated > (DB.items[i].updated || 0)) DB.items[i] = it;
+}
+async function syncNow(){
+  if(!SB || !SESSION || syncing) return;
+  if(!navigator.onLine){ syncErr = '오프라인 — 연결되면 자동으로 맞춰요'; updateSyncBadge(); return; }
+  syncing = true; updateSyncBadge();
+  try{
+    // 1) 이 기기에서 고친 것 올리기
+    const snap = {};
+    DB.dirty.forEach(id => { const x = DB.items.find(i => i.id === id); if(x) snap[id] = x.updated || 0; });
+    const rows = Object.keys(snap).map(id => { const x = DB.items.find(i => i.id === id); return {id, type: x.type, data: x, updated: x.updated || 0, deleted: !!x.deleted}; });
+    for(let i = 0; i < rows.length; i += 200){
+      const {data, error} = await SB.from('kbs_items').upsert(rows.slice(i, i + 200), {onConflict: 'id'}).select('id,type,data,updated,deleted,server_at');
+      if(error) throw error;
+      (data || []).forEach(mergeRemote); // 서버에 더 최신이 있으면 그걸로
+    }
+    // 올리는 사이 다시 고친 것은 남겨 둠
+    DB.dirty = DB.dirty.filter(id => { const x = DB.items.find(i => i.id === id); return !(id in snap) || (x && (x.updated || 0) > snap[id]); });
+    // 2) 다른 기기에서 고친 것 받기 (서버 시각 기준, 5초 겹쳐 읽기)
+    for(let page = 0; page < 20; page++){
+      let q = SB.from('kbs_items').select('id,type,data,updated,deleted,server_at').order('server_at', {ascending: true}).limit(1000);
+      if(DB.lastPull) q = q.gt('server_at', new Date(new Date(DB.lastPull).getTime() - 5000).toISOString());
+      const {data, error} = await q;
+      if(error) throw error;
+      (data || []).forEach(mergeRemote);
+      if(!data || !data.length) break;
+      const last = data[data.length - 1].server_at;
+      if(DB.lastPull && new Date(last) <= new Date(DB.lastPull)) break;
+      DB.lastPull = last;
+      if(data.length < 1000) break;
+    }
+    saveDB(); lastSyncAt = Date.now(); syncErr = '';
+    render();
+  }catch(e){
+    syncErr = (e && e.message) ? '동기화 실패: ' + e.message : '동기화 실패';
+  }finally{
+    syncing = false; updateSyncBadge();
+  }
+}
+function updateSyncBadge(){
+  const el = document.getElementById('syncState'); if(!el) return;
+  let cls = '', txt = '이 기기';
+  if(SESSION){
+    if(syncing){ cls = 'busy'; txt = '맞추는 중'; }
+    else if(syncErr){ cls = 'err'; txt = navigator.onLine ? '동기화 오류' : '오프라인'; }
+    else { cls = 'ok'; txt = DB.dirty.length ? '대기 ' + DB.dirty.length : '동기화됨'; }
+  }
+  el.className = 'sync ' + cls;
+  el.querySelector('span').textContent = txt;
+}
+function accountHtml(){
+  let h = '<div class="sec"><h3>계정 · 동기화</h3>';
+  if(!SB){
+    h += '<div class="muted">' + esc(syncErr || '서버에 연결하는 중…') + '</div></div>';
+    return h;
+  }
+  if(!SESSION){
+    return h + '<div class="muted" style="margin-bottom:10px">로그인하면 PC·폰이 자동으로 맞춰지고, Claude가 말을 알아듣고 비슷한 뜻으로도 찾아줘요.</div>'
+      + '<div class="field"><input id="f_email" type="email" autocomplete="username" placeholder="이메일"></div>'
+      + '<div class="field"><input id="f_pw" type="password" autocomplete="current-password" placeholder="비밀번호" onkeydown="if(event.key===\'Enter\')sbLogin()"></div>'
+      + '<button class="btn pri" style="width:100%" onclick="sbLogin()">로그인</button></div>';
+  }
+  const t = lastSyncAt ? new Date(lastSyncAt).toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'}) : '—';
+  return h + '<div style="font-weight:700">' + esc(SESSION.user.email || '') + '</div>'
+    + '<div class="muted" style="margin:4px 0 10px">마지막 동기화 ' + t + (DB.dirty.length ? ' · 올릴 것 ' + DB.dirty.length + '개' : '') + '</div>'
+    + (syncErr ? '<div class="muted" style="color:var(--sun);margin-bottom:10px">' + esc(syncErr) + '</div>' : '')
+    + '<div class="row"><button class="btn sec sm" onclick="syncNow().then(openSettings)">지금 동기화</button><button class="btn sec sm" onclick="sbLogout()">로그아웃</button></div></div>';
+}
+async function sbLogin(){
+  if(!SB) return;
+  const email = val('f_email'), password = document.getElementById('f_pw').value;
+  if(!email || !password){ toast('이메일과 비밀번호를 넣어 주세요'); return; }
+  const {error} = await SB.auth.signInWithPassword({email, password});
+  if(error){ toast(/invalid/i.test(error.message) ? '이메일 또는 비밀번호가 맞지 않아요' : '로그인 실패: ' + error.message); return; }
+  toast('로그인했어요 — 기록을 맞추는 중'); openSettings();
+}
+async function sbLogout(){
+  if(!SB || !confirm('로그아웃할까요? 이 기기 기록은 그대로 남아요.')) return;
+  await SB.auth.signOut(); toast('로그아웃했어요'); openSettings();
+}
+// Claude 호출 (Edge Function kbs-ai). 실패·시간 초과면 null
+async function aiCall(body, ms){
+  if(!SB || !SESSION || !navigator.onLine) return null;
+  try{
+    const r = await Promise.race([
+      SB.functions.invoke('kbs-ai', {body}),
+      new Promise(res => setTimeout(() => res({timeout: true}), ms || 8000))
+    ]);
+    if(!r || r.timeout || r.error || !r.data || !r.data.result) return null;
+    return r.data.result;
+  }catch(e){ return null; }
+}
+
 // ---------- 공통 ----------
 let toastT = null;
 function toast(msg){
@@ -872,11 +1102,14 @@ function toast(msg){
 }
 document.addEventListener('keydown', e => { if(e.key === 'Escape'){ closeModal(); } });
 let rsT = null; window.addEventListener('resize', () => { clearTimeout(rsT); rsT = setTimeout(render, 150); });
-document.addEventListener('visibilitychange', () => { if(!document.hidden) render(); }); // 날짜 넘어가면 갱신
+document.addEventListener('visibilitychange', () => { if(!document.hidden){ render(); syncNow(); } }); // 날짜 넘어가면 갱신 + 다른 기기 변경 받기
+window.addEventListener('online', () => { syncErr = ''; syncNow(); });
+setInterval(() => { if(!document.hidden) syncNow(); }, 60000);
 
 // ---------- 시작 ----------
 applyTheme();
 render();
+sbLoad();
 // 빅스비 빠른 명령어 등으로 ?voice=1 주소를 열면 바로 듣기 시도 (브라우저가 막으면 마이크 버튼 안내)
 if(/[?&]voice=1/.test(location.search)){
   setTimeout(() => { try{ toggleMic(); }catch(e){} }, 400);
