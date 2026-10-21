@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v9.3-ask-gift">
+<meta name="app-build-version" content="v9.4-cal-tap">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v9.3-ask-gift';</script>
+<script>window.APP_BUILD = 'v9.4-cal-tap';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -104,6 +104,7 @@ textarea{resize:vertical;min-height:90px;line-height:1.5}
 .cell.today .dn span{background:var(--text);color:var(--card)}
 .cell .dn.sun{color:var(--sun)} .cell .dn.sat{color:var(--sat)}
 .cell .lun{font-size:11px;font-weight:500;font-style:normal;color:var(--sub);margin-left:4px}
+@media (pointer: fine){ .pill[data-id]:hover{outline:1.5px solid currentColor;outline-offset:-1.5px} }
 .pill{display:block;font-size:12px;font-weight:600;line-height:1.3;padding:3px 6px;border-radius:5px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pill.ev{background:var(--ev-bg);color:var(--ev-tx)}
 .pill.memo{background:var(--mm-bg);color:var(--mm-tx)}
@@ -125,6 +126,11 @@ textarea{resize:vertical;min-height:90px;line-height:1.5}
 .side-sec{font-size:13px;font-weight:700;color:var(--sub);margin:18px 0 8px}
 .scard{background:var(--card);border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;border:1px solid transparent}
 .scard:hover{border-color:var(--line)}
+.scard{position:relative}
+.sdel{position:absolute;top:8px;right:8px;width:30px;height:30px;border:0;border-radius:8px;background:transparent;color:var(--sub);display:grid;place-items:center;cursor:pointer;padding:0}
+.sdel:hover{background:var(--cell);color:var(--text)}
+.sdel .ico{width:16px;height:16px}
+.scard .st{padding-right:26px}
 .scard .st{font-weight:700;display:flex;align-items:flex-start;gap:8px;word-break:break-all}
 .scard .ss{font-size:13px;color:var(--sub);margin:4px 0 0 16px;white-space:pre-wrap;word-break:break-all;line-height:1.5}
 .dot{width:8px;height:8px;border-radius:50%;flex:none;margin-top:7px;display:inline-block}
@@ -203,6 +209,7 @@ mark{background:var(--yellow);color:#000;border-radius:3px;padding:0 1px}
 .field label{display:block;font-size:13px;color:var(--sub);margin-bottom:5px;font-weight:600}
 .toast{position:fixed;left:50%;top:calc(72px + env(safe-area-inset-top));transform:translateX(-50%);background:var(--text);color:var(--card);padding:10px 16px;border-radius:12px;z-index:60;font-size:14px;font-weight:600;display:none;max-width:90vw;text-align:center}
 .toast.show{display:block}
+.undo-btn{margin-left:10px;background:transparent;color:inherit;border:1.5px solid currentColor;border-radius:8px;padding:3px 10px;font:inherit;font-size:13px;cursor:pointer}
 .vgate{position:fixed;inset:0;z-index:55;background:rgba(10,14,12,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#fff;font-weight:700;font-size:18px}
 .vgate button{width:168px;height:168px;border-radius:50%;border:0;background:#FFD166;color:#22223B;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 40px rgba(0,0,0,.3)}
 .vgate button .ico{width:72px;height:72px;stroke-width:1.6}
@@ -332,6 +339,26 @@ function removeItem(id){
   Object.keys(x).forEach(k => { if(!['id','type','created'].includes(k)) delete x[k]; });
   x.deleted = true; x.updated = Date.now();
   markDirty(id); saveDB(); render(); syncSoon();
+}
+// 확인창 대신: 바로 지우고 6초 동안 [되돌리기]
+let undoT = null;
+function quickDelete(id){
+  const x = DB.items.find(i => i.id === id); if(!x) return;
+  const backup = JSON.parse(JSON.stringify(x));
+  removeItem(id);
+  const t = document.getElementById('toast');
+  t.innerHTML = '삭제했어요 <button class="undo-btn" onclick="undoDelete()">되돌리기</button>';
+  t.classList.add('show');
+  window._undoItem = backup;
+  clearTimeout(toastT); clearTimeout(undoT);
+  undoT = setTimeout(() => { t.classList.remove('show'); window._undoItem = null; }, 6000);
+}
+function undoDelete(){
+  const b = window._undoItem; if(!b) return;
+  window._undoItem = null; clearTimeout(undoT);
+  const x = DB.items.find(i => i.id === b.id);
+  if(x){ Object.keys(x).forEach(k => delete x[k]); Object.assign(x, b); delete x.deleted; upsert(x); }
+  toast('되돌렸어요');
 }
 const live   = () => DB.items.filter(x => !x.deleted);
 const events = () => live().filter(x => x.type === 'event');
@@ -580,7 +607,8 @@ const IC = {
   check: '<svg class="ico" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
   search: '<svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>',
   cal: '<svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
-  list: '<svg class="ico" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>'
+  list: '<svg class="ico" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>',
+  x: '<svg class="ico" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>'
 };
 const isNarrow = () => window.innerWidth < 640;
 
@@ -699,7 +727,7 @@ function renderCal(){
   const tday = todayYmd();
   const MAX = isNarrow() ? 2 : 4;
   let h = '<div class="panel">'
-    + panelHead('달력', '날짜를 누르면 그날 일정을 볼 수 있어요.',
+    + panelHead('달력', isTouch() ? '날짜를 누르면 그날 일정 · 한 번 더 누르면 새 일정 · 일정 이름을 누르면 수정' : '날짜를 누르면 그날 일정 · 두 번 누르면 새 일정 · 일정 이름을 누르면 수정',
         '<div class="mnav"><button class="icon-btn" onclick="calStep(-1)" aria-label="이전 달">' + IC.left + '</button>'
         + '<b>' + viewY + '년 ' + (viewM+1) + '월</b>'
         + '<button class="icon-btn" onclick="calStep(1)" aria-label="다음 달">' + IC.right + '</button>'
@@ -716,17 +744,37 @@ function renderCal(){
     const dd = ddaysOnDate(s);
     const cls = ['cell']; if(d.getMonth() !== viewM) cls.push('other'); if(s === tday) cls.push('today'); if(s === selDate) cls.push('sel');
     const dn = d.getDay() === 0 ? ' sun' : d.getDay() === 6 ? ' sat' : '';
-    h += '<div class="' + cls.join(' ') + '" onclick="selectDate(\'' + s + '\')"><div class="dn' + dn + '"><span>' + d.getDate() + '</span>' + (isNarrow() ? '' : '<i class="lun">' + lunarLabel(s) + '</i>') + '</div>';
+    h += '<div class="' + cls.join(' ') + '" onclick="calTap(\'' + s + '\',event)" ondblclick="calDbl(\'' + s + '\',event)"><div class="dn' + dn + '"><span>' + d.getDate() + '</span>' + (isNarrow() ? '' : '<i class="lun">' + lunarLabel(s) + '</i>') + '</div>';
     let pills = [];
-    if(calShow.dday) pills = pills.concat(dd.map(o => '<span class="pill dd">' + esc(o.label) + '</span>'));
-    if(calShow.event) pills = pills.concat(ev.map(x => '<span class="pill ev">' + (x.time && !isNarrow() ? x.time.replace(/^0/,'') + ' ' : '') + esc(x.title) + '</span>'));
-    if(calShow.memo) pills = pills.concat(mm.map(x => '<span class="pill memo">' + esc(x.text.split('\n')[0]) + '</span>'));
+    if(calShow.dday) pills = pills.concat(dd.map(o => '<span class="pill dd" data-k="dday" data-id="' + o.x.id + '">' + esc(o.label) + '</span>'));
+    if(calShow.event) pills = pills.concat(ev.map(x => '<span class="pill ev" data-k="event" data-id="' + x.id + '">' + (x.time && !isNarrow() ? x.time.replace(/^0/,'') + ' ' : '') + esc(x.title) + '</span>'));
+    if(calShow.memo) pills = pills.concat(mm.map(x => '<span class="pill memo" data-k="memo" data-id="' + x.id + '">' + esc(x.text.split('\n')[0]) + '</span>'));
     h += pills.slice(0, MAX).join('');
     if(pills.length > MAX) h += '<div class="more">+' + (pills.length - MAX) + '</div>';
     h += '</div>';
   }
   h += '</div></div><aside class="side">' + sideHtml() + '</aside></div></div>';
   document.getElementById('tab-cal').innerHTML = h;
+}
+// 달력 칸: 처음 누르면 그날 선택. 이미 고른 날에서 일정·메모·D-day 이름을 누르면 수정,
+// 빈 곳을 한 번 더 누르면(폰) / 두 번 누르면(PC) 그날 새 일정.
+function isTouch(){ return matchMedia('(pointer: coarse)').matches; }
+function calPillEdit(e){
+  const p = e.target.closest('[data-id]'); if(!p) return false;
+  const id = p.dataset.id, k = p.dataset.k;
+  if(k === 'event') editEvent(id); else if(k === 'memo') editMemo(id); else editDday(id);
+  return true;
+}
+function calTap(s, e){
+  if(!isTouch() && e.target.closest('[data-id]')){ if(s !== selDate) selectDate(s); calPillEdit(e); return; } // PC: 이름 바로 수정
+  if(s !== selDate){ selectDate(s); return; }
+  if(calPillEdit(e)) return;
+  if(isTouch()) editEvent(null, s);
+}
+function calDbl(s, e){
+  if(isTouch() || e.target.closest('[data-id]')) return;
+  if(s !== selDate) selectDate(s);
+  editEvent(null, s);
 }
 function sideHtml(){
   const {ev, mm} = itemsOnDate(selDate);
@@ -738,8 +786,8 @@ function sideHtml(){
     + '<button class="btn sec sm" onclick="editMemo(null,\'' + selDate + '\')">+ 메모</button></div>';
   if(!ev.length && !mm.length && !dd.length) h += '<div class="empty" style="padding:14px 0">이 날은 비어 있어요.</div>';
   dd.forEach(o => h += '<div class="scard" onclick="editDday(\'' + o.x.id + '\')"><div class="st"><i class="dot dd"></i>' + esc(o.label) + '</div><div class="ss">기념일</div></div>');
-  ev.forEach(x => h += '<div class="scard" onclick="editEvent(\'' + x.id + '\')"><div class="st"><i class="dot ev"></i>' + esc(x.title) + '</div><div class="ss">' + (x.time ? fmtTime(x.time) : '종일') + (x.note ? '\n' + esc(x.note) : '') + '</div></div>');
-  mm.forEach(x => h += '<div class="scard" onclick="editMemo(\'' + x.id + '\')"><div class="st"><i class="dot memo"></i>' + esc(x.text.split('\n')[0]) + '</div>' + (x.text.includes('\n') ? '<div class="ss">' + esc(x.text.split('\n').slice(1).join('\n')) + '</div>' : '<div class="ss">메모</div>') + '</div>');
+  ev.forEach(x => h += '<div class="scard" onclick="editEvent(\'' + x.id + '\')"><button class="sdel" aria-label="삭제" onclick="event.stopPropagation();quickDelete(\'' + x.id + '\')">' + IC.x + '</button><div class="st"><i class="dot ev"></i>' + esc(x.title) + '</div><div class="ss">' + (x.time ? fmtTime(x.time) : '종일') + (x.note ? '\n' + esc(x.note) : '') + '</div></div>');
+  mm.forEach(x => h += '<div class="scard" onclick="editMemo(\'' + x.id + '\')"><button class="sdel" aria-label="삭제" onclick="event.stopPropagation();quickDelete(\'' + x.id + '\')">' + IC.x + '</button><div class="st"><i class="dot memo"></i>' + esc(x.text.split('\n')[0]) + '</div>' + (x.text.includes('\n') ? '<div class="ss">' + esc(x.text.split('\n').slice(1).join('\n')) + '</div>' : '<div class="ss">메모</div>') + '</div>');
   // 다가오는 기념일 (30일 안)
   const soon = ddays().map(x => ({x, i: ddayInfo(x)})).filter(o => o.i.soon != null && o.i.soon >= 0 && o.i.soon <= 30).sort((a, b) => a.i.soon - b.i.soon).slice(0, 5);
   if(soon.length){
@@ -983,7 +1031,7 @@ function editGift(id, preset){
     + '<div class="row"><div class="field" style="flex:1"><label>관계</label><input id="g_rel" value="' + esc(x.rel || '') + '" placeholder="친구·동료·친척"></div><div class="field" style="flex:1"><label>분류</label><input id="g_grp" value="' + esc(x.grp || '') + '" placeholder="가족·아버지 손님"></div></div>'
     + '<div class="field"><label>메모</label><input id="g_memo" value="' + esc(x.memo || '') + '"></div>'
     + '<div class="row" style="justify-content:space-between;margin-top:6px">'
-    + (id ? '<button class="btn warn" onclick="if(confirm(\'이 기록을 지울까요?\')){removeItem(\'' + id + '\');closeModal();toast(\'삭제했어요\')}">삭제</button>' : '<span></span>')
+    + (id ? '<button class="btn warn" onclick="closeModal();quickDelete(\'' + id + '\')">삭제</button>' : '<span></span>')
     + '<div class="row"><button class="btn sec" onclick="closeModal()">닫기</button><button class="btn pri" onclick="saveGift(\'' + (id || '') + '\')">저장</button></div></div>');
 }
 function saveGift(id){
@@ -1024,7 +1072,7 @@ function editLink(id){
     + '<div class="field"><label>이름</label><input id="l_title" value="' + esc(x.title) + '" placeholder="예) 식용유 원가계산 툴"></div>'
     + '<div class="field"><label>주소</label><input id="l_url" value="' + esc(x.url) + '" placeholder="https://..." inputmode="url"></div>'
     + '<div class="row" style="justify-content:space-between;margin-top:6px">'
-    + (id ? '<button class="btn warn" onclick="if(confirm(\'이 바로가기를 지울까요?\')){removeItem(\'' + id + '\');closeModal();toast(\'삭제했어요\')}">삭제</button>' : '<span></span>')
+    + (id ? '<button class="btn warn" onclick="closeModal();quickDelete(\'' + id + '\')">삭제</button>' : '<span></span>')
     + '<div class="row"><button class="btn sec" onclick="closeModal()">닫기</button><button class="btn pri" onclick="saveLink(\'' + (id || '') + '\')">저장</button></div></div>');
 }
 function saveLink(id){
@@ -1054,7 +1102,7 @@ function editEvent(id, date){
     + '<div class="field"><label>반복</label><select id="f_repeat"><option value="">반복 없음</option><option value="monthly"' + (x.repeat === 'monthly' ? ' selected' : '') + '>매월 같은 날</option></select></div>'
     + '<div class="field"><label>메모</label><textarea id="f_note" placeholder="장소·준비물 등">' + esc(x.note || '') + '</textarea></div>'
     + '<div class="row" style="justify-content:space-between;margin-top:6px">'
-    + (id ? '<button class="btn warn" onclick="if(confirm(\'이 일정을 지울까요?\')){removeItem(\'' + id + '\');closeModal();toast(\'삭제했어요\')}">삭제</button>' : '<span></span>')
+    + (id ? '<button class="btn warn" onclick="closeModal();quickDelete(\'' + id + '\')">삭제</button>' : '<span></span>')
     + '<div class="row"><button class="btn sec" onclick="closeModal()">닫기</button><button class="btn pri" onclick="saveEvent(\'' + (id || '') + '\')">저장</button></div></div>');
   if(!id) setTimeout(() => document.getElementById('f_title').focus(), 50);
 }
@@ -1072,7 +1120,7 @@ function editMemo(id, date){
     + '<div class="field"><textarea id="f_text" style="min-height:160px" placeholder="생각나는 대로 적어 두세요">' + esc(x.text) + '</textarea></div>'
     + '<div class="field"><label>날짜에 붙이기 (선택 — 달력에도 보여요)</label><input type="date" id="f_mdate" value="' + esc(x.date || '') + '"></div>'
     + '<div class="row" style="justify-content:space-between;margin-top:6px">'
-    + (id ? '<button class="btn warn" onclick="if(confirm(\'이 메모를 지울까요?\')){removeItem(\'' + id + '\');closeModal();toast(\'삭제했어요\')}">삭제</button>' : '<span></span>')
+    + (id ? '<button class="btn warn" onclick="closeModal();quickDelete(\'' + id + '\')">삭제</button>' : '<span></span>')
     + '<div class="row"><button class="btn sec" onclick="closeModal()">닫기</button><button class="btn pri" onclick="saveMemo(\'' + (id || '') + '\')">저장</button></div></div>');
   if(!id) setTimeout(() => document.getElementById('f_text').focus(), 50);
 }
@@ -1105,7 +1153,7 @@ function editDday(id){
     + '<div class="muted" style="margin-top:6px" id="f_lunarHint"></div></div>'
     + '<div class="field" id="f_noYearBox"><label style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="f_noYear" style="width:auto"' + (x.noYear && !x.lunar ? ' checked' : '') + '> 연도는 몰라요 (몇 번째인지 안 셈)</label></div>'
     + '<div class="row" style="justify-content:space-between;margin-top:6px">'
-    + (id ? '<button class="btn warn" onclick="if(confirm(\'이 D-day를 지울까요?\')){removeItem(\'' + id + '\');closeModal();toast(\'삭제했어요\')}">삭제</button>' : '<span></span>')
+    + (id ? '<button class="btn warn" onclick="closeModal();quickDelete(\'' + id + '\')">삭제</button>' : '<span></span>')
     + '<div class="row"><button class="btn sec" onclick="closeModal()">닫기</button><button class="btn pri" onclick="saveDday(\'' + (id || '') + '\')">저장</button></div></div>');
   ['f_ly','f_lm','f_ld'].forEach(k => document.getElementById(k).addEventListener('input', lunarHint));
   ddKindChanged();
