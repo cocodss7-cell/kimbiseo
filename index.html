@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v9-drawer">
+<meta name="app-build-version" content="v9.1-link-guard">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v9-drawer';</script>
+<script>window.APP_BUILD = 'v9.1-link-guard';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -1009,6 +1009,9 @@ function editLink(id){
 function saveLink(id){
   const title = val('l_title'); let url = val('l_url');
   if(!title || !url){ toast('이름과 주소를 넣어 주세요'); return; }
+  if(/^(file:|[a-z]:[\\/]|\\\\)/i.test(url) || /^https?:\/\/file:/i.test(url)){
+    toast('PC 파일 주소는 김비서에서 열 수 없어요 — 인터넷 주소(https://…)를 넣어 주세요'); return;
+  }
   if(!/^https?:\/\//i.test(url)) url = 'https://' + url;
   const x = id ? DB.items.find(i => i.id === id) : {id: uid(), type:'link'};
   Object.assign(x, {title, url});
