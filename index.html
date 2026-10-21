@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v9.1-link-guard">
+<meta name="app-build-version" content="v9.2-ask-day">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v9.1-link-guard';</script>
+<script>window.APP_BUILD = 'v9.2-ask-day';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -521,6 +521,17 @@ function parseCommand(raw){
     .replace(/\s(에|에는)\s/g,' ')
     .replace(/\s+/g,' ').trim();
 
+  // 날짜 질문: "10월 22일 무슨 일정 있지?", "내일 뭐 있어?", "이번 주 일정 알려줘" → 그날(그 주) 일정 읽어 주기
+  const askQ = !/(넣어|추가|등록|저장|잡아|기록|입력|적어|기억해)/.test(raw)
+    && (/(무슨|뭔|어떤)\s*(일정|일|약속|거|게)|일정\s*(뭐|있|알려|말해|읽어|확인)|뭐\s*(있|해야)/.test(raw)
+        || /(있어|있지|있나|있니|있냐|있었어|있었지|있었나|있던가|뭐야|뭐지|알려\s*(줘|줄래|주세요)|말해\s*(줘|줄래)|읽어\s*(줘|줄래))\s*[?？.]*\s*$/.test(raw.trim()));
+  if(askQ && date) return {kind:'day', date: ymd(date)};
+  const wk = raw.match(/(이번|다음|담|다다음)\s*주/);
+  if(askQ && !date && wk){
+    const mon = addDays(today, -((today.getDay() + 6) % 7));
+    const w = wk[1];
+    return {kind:'week', date: ymd(addDays(mon, w === '이번' ? 0 : w === '다다음' ? 14 : 7))};
+  }
   if(intent === 'find') return {kind:'find', query: title || raw.trim()};
   // 경조사 기록: "홍길동 장례식 10만원 냈어", "김철수 결혼식 축의금 20만원 받았어"
   const gm = raw.match(/(\d+(?:[.,]\d+)?)\s*(만\s*원|만|원)/);
@@ -949,7 +960,14 @@ function giftSummary(q){
   const p = giftPeople().find(p => normalizeKo(p.nm) === k) || giftPeople().filter(p => normalizeKo(p.nm).includes(k)).sort((a, b) => a.nm.length - b.nm.length)[0];
   if(!p) return '';
   const say = a => a % 10000 === 0 ? (a / 10000) + '만 원' : a.toLocaleString('ko-KR') + '원';
-  return p.nm + ', 받은 돈 ' + (p.inSum ? say(p.inSum) : '없음') + ', 낸 돈 ' + (p.outSum ? say(p.outSum) : '없음') + '.';
+  const lastOf = dir => p.list.filter(x => x.dir === dir).sort((a, b) => String(b.d || '').localeCompare(String(a.d || '')))[0];
+  const one = (dir, sum, word) => {
+    if(!sum) return word + ' 돈 없음';
+    const n = p.list.filter(x => x.dir === dir).length, l = lastOf(dir);
+    const when = l && l.d ? ymdParts(l.d).y + '년 ' : '';
+    return word + ' 돈 ' + say(sum) + (n > 1 ? ' (' + n + '번, 최근 ' + when + (l.ev || '') + ' ' + say(Number(l.a || 0)) + ')' : (l && (when || l.ev) ? ' (' + when + (l.ev || '') + ')' : ''));
+  };
+  return p.nm + ', ' + one('out', p.outSum, '낸') + ', ' + one('in', p.inSum, '받은') + '.';
 }
 function editGift(id, preset){
   const x = id ? DB.items.find(i => i.id === id) : Object.assign({type:'gift', dir:'out', nm:'', a:'', ev:'결혼식', d: todayYmd(), rel:'', grp:'', memo:''}, preset || {});
@@ -1200,6 +1218,8 @@ async function onAsk(fromVoice){
   const seq = ++askSeq;
   clearInterval(pvTimer);
   let p = null;
+  const q0 = parseCommand(text);
+  if(q0.kind === 'day' || q0.kind === 'week'){ answerDay(q0, fromVoice); inp.value = ''; return; }
   if(SESSION && navigator.onLine){
     document.getElementById('pvBox').innerHTML = '<div class="sum">' + esc(text) + '</div><div class="muted">알아듣는 중…</div><div class="row"><button class="btn sec" onclick="cancelPending()">취소</button></div>';
     document.getElementById('preview').classList.add('show');
@@ -1216,6 +1236,28 @@ async function onAsk(fromVoice){
     return;
   }
   PENDING = p; showPreview(fromVoice);
+}
+function dayAnswerText(s, withDate){
+  const d = parseYmd(s), {ev, mm} = itemsOnDate(s), dd = ddaysOnDate(s);
+  const head = withDate ? (d.getMonth()+1) + '월 ' + d.getDate() + '일 ' + DOW[d.getDay()] + '요일' : '';
+  if(!ev.length && !mm.length && !dd.length) return withDate ? head + '은 비어 있어요.' : '';
+  const parts = [];
+  dd.forEach(o => parts.push(o.label));
+  ev.forEach(x => parts.push((x.time ? fmtTime(x.time) + ' ' : '') + x.title));
+  mm.forEach(x => parts.push('메모 ' + x.text.split('\n')[0]));
+  return (head ? head + ', ' : '') + parts.join(', ') + '.';
+}
+function answerDay(q, fromVoice){
+  let msg;
+  if(q.kind === 'week'){
+    const lines = [];
+    for(let i = 0; i < 7; i++){ const t = dayAnswerText(ymd(addDays(parseYmd(q.date), i)), true); if(t && !/비어 있어요/.test(t)) lines.push(t); }
+    msg = lines.length ? lines.join(' ') : '그 주는 일정이 없어요.';
+  } else msg = dayAnswerText(q.date, true);
+  selectDate(q.date); if(TAB !== 'cal') showTab('cal');
+  document.getElementById('pvBox').innerHTML = '<div class="sum">' + esc(msg) + '</div><div class="row"><button class="btn sec" onclick="cancelPending()">닫기</button></div>';
+  document.getElementById('preview').classList.add('show');
+  if(fromVoice) speak(msg);
 }
 function won(a){ return Number(a || 0).toLocaleString('ko-KR') + '원'; }
 function pvSummary(p){
