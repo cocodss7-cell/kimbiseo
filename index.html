@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v9.2-ask-day">
+<meta name="app-build-version" content="v9.3-ask-gift">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v9.2-ask-day';</script>
+<script>window.APP_BUILD = 'v9.3-ask-gift';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -954,10 +954,13 @@ function giftListHtml(){
   if(rows.length > shown.length) h += '<div class="muted" style="text-align:center;padding:8px">' + (rows.length - shown.length) + '명 더 — 검색으로 찾아 주세요</div>';
   return h;
 }
-function giftSummary(q){
+function giftFind(q){
   const k = normalizeKo(q).replace(/얼마.*$/, '').replace(/(한테|에게|님|씨)$/, '');
-  if(k.length < 2) return '';
-  const p = giftPeople().find(p => normalizeKo(p.nm) === k) || giftPeople().filter(p => normalizeKo(p.nm).includes(k)).sort((a, b) => a.nm.length - b.nm.length)[0];
+  if(k.length < 2) return null;
+  return giftPeople().find(p => normalizeKo(p.nm) === k) || giftPeople().filter(p => normalizeKo(p.nm).includes(k)).sort((a, b) => a.nm.length - b.nm.length)[0] || null;
+}
+function giftSummary(q){
+  const p = giftFind(q);
   if(!p) return '';
   const say = a => a % 10000 === 0 ? (a / 10000) + '만 원' : a.toLocaleString('ko-KR') + '원';
   const lastOf = dir => p.list.filter(x => x.dir === dir).sort((a, b) => String(b.d || '').localeCompare(String(a.d || '')))[0];
@@ -1229,9 +1232,18 @@ async function onAsk(fromVoice){
   if(!p) p = parseCommand(text);
   if(p.kind === 'find'){
     document.getElementById('preview').classList.remove('show');
-    findQ = p.query; inp.value = ''; showTab('find');
+    inp.value = '';
     const gs = giftSummary(p.query);
-    if(gs){ if(fromVoice) speak(gs); toast(gs); runAiSearch(false); return; }
+    if(gs){
+      // 경조사 질문은 어느 화면에서 물어도 서랍 › 경조사 장부의 그 사람을 펼쳐서 보여 줌
+      const gp = giftFind(p.query);
+      moreSub = 'gift'; giftQ = gp.nm; giftOpen = String(gp.nm).replace(/\s+/g, ''); showTab('more');
+      document.getElementById('pvBox').innerHTML = '<div class="sum">' + esc(gs) + '</div><div class="row"><button class="btn sec" onclick="cancelPending()">닫기</button></div>';
+      document.getElementById('preview').classList.add('show');
+      if(fromVoice) speak(gs);
+      return;
+    }
+    findQ = p.query; showTab('find');
     runAiSearch(fromVoice);
     return;
   }
