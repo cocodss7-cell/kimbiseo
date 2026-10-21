@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v9.4-cal-tap">
+<meta name="app-build-version" content="v9.5-multi-date">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v9.4-cal-tap';</script>
+<script>window.APP_BUILD = 'v9.5-multi-date';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -1271,6 +1271,8 @@ async function onAsk(fromVoice){
   let p = null;
   const q0 = parseCommand(text);
   if(q0.kind === 'day' || q0.kind === 'week'){ answerDay(q0, fromVoice); inp.value = ''; return; }
+  const multi = splitMulti(text);
+  if(multi){ PENDING = {kind:'multi', items: multi, raw: text}; showPreview(fromVoice); return; }
   if(SESSION && navigator.onLine){
     document.getElementById('pvBox').innerHTML = '<div class="sum">' + esc(text) + '</div><div class="muted">알아듣는 중…</div><div class="row"><button class="btn sec" onclick="cancelPending()">취소</button></div>';
     document.getElementById('preview').classList.add('show');
@@ -1319,6 +1321,24 @@ function answerDay(q, fromVoice){
   document.getElementById('preview').classList.add('show');
   if(fromVoice) speak(msg);
 }
+// 한 문장에 날짜가 여럿: "10/22 탈검유 10/26 CJ Audit" → 날짜마다 따로 일정
+const MULTI_DATE_RE = /\d{4}\s*[.\-\/년]\s*\d{1,2}\s*[.\-\/월]\s*\d{1,2}\s*일?|\d{1,2}\s*월\s*\d{1,2}\s*일|(?<![\d\/.])\d{1,2}\/\d{1,2}(?![\d\/])/g;
+function splitMulti(text){
+  const t = text.trim().replace(/^김비서(야|님|씨)?\s*[,.!]?\s*/, '');
+  const ms = [...t.matchAll(MULTI_DATE_RE)];
+  if(ms.length < 2 || t.slice(0, ms[0].index).trim().length > 0) return null; // 날짜로 시작하는 문장만
+  const out = [];
+  for(let i = 0; i < ms.length; i++){
+    let seg = t.slice(ms[i].index, i + 1 < ms.length ? ms[i+1].index : t.length)
+      .replace(/[\s,·;]+(그리고|이랑|랑|하고|또)?[\s,·;]*$/, '').trim();
+    seg = seg.replace(/(\d{1,2})\/(\d{1,2})/, '$1/$2 '); // "10/22탈검유"도 읽히게
+    const p = parseCommand(seg);
+    if(p.kind !== 'event' || !p.title) return null; // 하나라도 일정이 아니면 나누지 않음
+    out.push(p);
+  }
+  // 끝의 "넣어줘" 같은 말은 마지막 조각에만 붙으므로 각 제목에서 정리됨
+  return out;
+}
 function won(a){ return Number(a || 0).toLocaleString('ko-KR') + '원'; }
 function pvSummary(p){
   if(p.kind === 'gift') return p.nm + ' · ' + p.ev + ' · ' + won(p.a) + (p.dir === 'in' ? ' 받음' : ' 냄') + ' (' + fmtDate(p.date) + ')';
@@ -1341,6 +1361,21 @@ function speakSummary(p){
 function showPreview(fromVoice){
   const p = PENDING;
   clearInterval(pvTimer);
+  if(p.kind === 'multi'){
+    let h = '<div class="hint">날짜가 ' + p.items.length + '개라 나눠서 넣을게요</div>';
+    p.items.forEach(x => h += '<div class="sum"><span class="tag ev">일정</span>' + esc(pvSummary(x)) + '</div>');
+    h += '<div class="row"><button class="btn pri" id="pvSave" onclick="confirmPending()">' + p.items.length + '건 저장</button>'
+       + '<button class="btn sec" onclick="PENDING=parseCommand(PENDING.raw);showPreview(false)">하나로</button>'
+       + '<button class="btn sec" onclick="cancelPending()">취소</button></div>';
+    document.getElementById('pvBox').innerHTML = h;
+    document.getElementById('preview').classList.add('show');
+    if(fromVoice){
+      speak(p.items.map(speakSummary).join(' ').replace(/일정에 넣을게요\./g, '') + ' 일정에 넣을게요. 취소하려면 취소를 누르세요.');
+      let left = 8; const btn = document.getElementById('pvSave');
+      pvTimer = setInterval(() => { left--; if(left <= 0){ clearInterval(pvTimer); confirmPending(); } else if(btn) btn.textContent = p.items.length + '건 저장 (' + left + ')'; }, 1000);
+    }
+    return;
+  }
   const tag = {event:'<span class="tag ev">일정</span>', memo:'<span class="tag memo">메모</span>', dday:'<span class="tag dd">D-day</span>', gift:'<span class="tag dd">경조사</span>'}[p.kind];
   let h = '<div class="sum">' + tag + esc(pvSummary(p)) + '</div>';
   if(p.notes && p.notes.length) h += '<div class="hint">' + esc(p.notes.join(' · ')) + '</div>';
@@ -1399,6 +1434,13 @@ function pendingEdit(forceKind){
 function confirmPending(){
   clearInterval(pvTimer);
   const p = PENDING; if(!p) return;
+  if(p.kind === 'multi'){
+    p.items.forEach(x => upsert({id: uid(), type:'event', date: x.date, time: x.time || null, title: x.title, note: '', src: 'ask', repeat: x.repeat || null}));
+    selectDate(p.items[0].date); if(TAB !== 'cal') showTab('cal');
+    toast(p.items.length + '건 저장했어요 · ' + p.items.map(x => fmtDate(x.date).replace(/ \(.\)/, '') + ' ' + x.title).join(', '));
+    cancelPending(true);
+    return;
+  }
   if(p.kind === 'gift'){
     upsert({id: uid(), type:'gift', dir: p.dir, nm: p.nm, a: p.a, ev: p.ev, d: p.date, rel:'', grp:'', memo:'', src:'ask'});
   } else if(p.kind === 'event'){
