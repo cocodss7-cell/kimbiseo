@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v9.5-multi-date">
+<meta name="app-build-version" content="v9.6-tap-stop">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v9.5-multi-date';</script>
+<script>window.APP_BUILD = 'v9.6-tap-stop';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -1537,6 +1537,23 @@ function endListening(){
   recWanted = false; clearTimeout(recSilenceT);
   try{ REC.stop(); }catch(e){ finishListening(); }
 }
+// 듣는 중 화면 아무 데나 누르면 듣기 끄기(받아쓴 말은 버림) — 달력만 보려는데 자동 듣기가 음악을 끊을 때
+function cancelListening(){
+  if(!recOn) return;
+  recText = ''; recSession = '';
+  recOn = false; recWanted = false; clearTimeout(recSilenceT); clearTimeout(recMaxT);
+  try{ REC && REC.abort(); }catch(e){}
+  document.getElementById('micBtn').classList.remove('on');
+  document.getElementById('voiceGate').classList.add('hidden');
+  const inp = document.getElementById('askInput'); inp.value = '';
+  applyVoiceMode();
+  toast('듣기를 껐어요');
+}
+document.addEventListener('pointerdown', e => {
+  if(!recOn) return;
+  if(e.target.closest('#micBtn, #voiceGate > button')) return; // 마이크 버튼은 원래대로(누르면 바로 입력)
+  cancelListening();
+}, true);
 function finishListening(){
   if(!recOn) return;
   recOn = false; recWanted = false; clearTimeout(recSilenceT); clearTimeout(recMaxT);
