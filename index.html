@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v9.6-tap-stop">
+<meta name="app-build-version" content="v9.7-cal-wrap">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v9.6-tap-stop';</script>
+<script>window.APP_BUILD = 'v9.7-cal-wrap';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -105,7 +105,7 @@ textarea{resize:vertical;min-height:90px;line-height:1.5}
 .cell .dn.sun{color:var(--sun)} .cell .dn.sat{color:var(--sat)}
 .cell .lun{font-size:11px;font-weight:500;font-style:normal;color:var(--sub);margin-left:4px}
 @media (pointer: fine){ .pill[data-id]:hover{outline:1.5px solid currentColor;outline-offset:-1.5px} }
-.pill{display:block;font-size:12px;font-weight:600;line-height:1.3;padding:3px 6px;border-radius:5px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;font-size:12px;font-weight:600;line-height:1.3;padding:3px 6px;border-radius:5px;margin-top:3px;white-space:normal;overflow:hidden;overflow-wrap:anywhere;word-break:break-all}
 .pill.ev{background:var(--ev-bg);color:var(--ev-tx)}
 .pill.memo{background:var(--mm-bg);color:var(--mm-tx)}
 .pill.dd{background:var(--dd-bg);color:var(--dd-tx)}
@@ -116,7 +116,7 @@ textarea{resize:vertical;min-height:90px;line-height:1.5}
   .cell{min-height:70px;padding:4px 3px;border-radius:8px}
   .cell .dn{font-size:12px;text-align:center;margin-bottom:2px}
   .cell .dn span{min-width:20px;padding:0 3px}
-  .pill{font-size:10px;padding:1px 3px;border-radius:3px;margin-top:2px;letter-spacing:-.4px}
+  .pill{font-size:10px;line-height:1.25;padding:1px 2px;border-radius:3px;margin-top:2px;letter-spacing:-.5px}
   .cell .more{font-size:10px;text-align:center;padding:0}
 }
 
@@ -725,7 +725,7 @@ function renderCal(){
   const first = new Date(viewY, viewM, 1);
   const start = addDays(first, -first.getDay());
   const tday = todayYmd();
-  const MAX = isNarrow() ? 2 : 4;
+  const MAX = isNarrow() ? 4 : 5; // 글씨가 다 보이게: 줄바꿈(최대 3줄) + 칸 높이는 내용만큼
   let h = '<div class="panel">'
     + panelHead('달력', isTouch() ? '날짜를 누르면 그날 일정 · 한 번 더 누르면 새 일정 · 일정 이름을 누르면 수정' : '날짜를 누르면 그날 일정 · 두 번 누르면 새 일정 · 일정 이름을 누르면 수정',
         '<div class="mnav"><button class="icon-btn" onclick="calStep(-1)" aria-label="이전 달">' + IC.left + '</button>'
@@ -747,7 +747,7 @@ function renderCal(){
     h += '<div class="' + cls.join(' ') + '" onclick="calTap(\'' + s + '\',event)" ondblclick="calDbl(\'' + s + '\',event)"><div class="dn' + dn + '"><span>' + d.getDate() + '</span>' + (isNarrow() ? '' : '<i class="lun">' + lunarLabel(s) + '</i>') + '</div>';
     let pills = [];
     if(calShow.dday) pills = pills.concat(dd.map(o => '<span class="pill dd" data-k="dday" data-id="' + o.x.id + '">' + esc(o.label) + '</span>'));
-    if(calShow.event) pills = pills.concat(ev.map(x => '<span class="pill ev" data-k="event" data-id="' + x.id + '">' + (x.time && !isNarrow() ? x.time.replace(/^0/,'') + ' ' : '') + esc(x.title) + '</span>'));
+    if(calShow.event) pills = pills.concat(ev.map(x => '<span class="pill ev" data-k="event" data-id="' + x.id + '">' + (x.time ? (isNarrow() ? shortTime(x.time) : x.time.replace(/^0/,'')) + ' ' : '') + esc(x.title) + '</span>'));
     if(calShow.memo) pills = pills.concat(mm.map(x => '<span class="pill memo" data-k="memo" data-id="' + x.id + '">' + esc(x.text.split('\n')[0]) + '</span>'));
     h += pills.slice(0, MAX).join('');
     if(pills.length > MAX) h += '<div class="more">+' + (pills.length - MAX) + '</div>';
@@ -759,6 +759,7 @@ function renderCal(){
 // 달력 칸: 처음 누르면 그날 선택. 이미 고른 날에서 일정·메모·D-day 이름을 누르면 수정,
 // 빈 곳을 한 번 더 누르면(폰) / 두 번 누르면(PC) 그날 새 일정.
 function isTouch(){ return matchMedia('(pointer: coarse)').matches; }
+function shortTime(t){ const [h, m] = t.split(':').map(Number); return h + (m ? ':' + String(m).padStart(2, '0') : '시'); }
 function calPillEdit(e){
   const p = e.target.closest('[data-id]'); if(!p) return false;
   const id = p.dataset.id, k = p.dataset.k;
