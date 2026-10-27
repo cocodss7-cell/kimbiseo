@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10.1-remove">
+<meta name="app-build-version" content="v10.2-enter-save">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10.1-remove';</script>
+<script>window.APP_BUILD = 'v10.2-enter-save';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -282,7 +282,7 @@ body.mini{padding-bottom:96px}
 
 <!-- 입력바 -->
 <div class="ask">
-  <form class="ask-in" onsubmit="event.preventDefault();onAsk();">
+  <form class="ask-in" onsubmit="event.preventDefault();askSubmit();">
     <input id="askInput" autocomplete="off" placeholder="10월 16일 18시 면접 넣어줘">
     <button type="button" class="mic" id="micBtn" onclick="toggleMic()" aria-label="음성 입력"><svg class="ico" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
     <button type="submit" class="send">입력</button>
@@ -1243,7 +1243,7 @@ function importData(file){
 }
 
 // ---------- 입력 → 해석(로그인 시 Claude, 실패하면 규칙) → 미리보기 → 저장 ----------
-let PENDING = null, pvTimer = null, askSeq = 0;
+let PENDING = null, pvTimer = null, askSeq = 0, pvText = '';
 function todayContext(){
   const n = new Date();
   return todayYmd() + ' (' + DOW[n.getDay()] + '요일) ' + pad(n.getHours()) + ':' + pad(n.getMinutes());
@@ -1267,6 +1267,7 @@ function fromAi(a, raw){
 async function onAsk(fromVoice){
   const inp = document.getElementById('askInput');
   const text = inp.value.trim(); if(!text) return;
+  pvText = text;
   const seq = ++askSeq;
   clearInterval(pvTimer);
   let p = null;
@@ -1456,6 +1457,12 @@ function confirmPending(){
   }
   toast('저장했어요 · ' + pvSummary(p));
   cancelPending(true);
+}
+// 입력칸 Enter: 미리보기가 떠 있고 글자를 안 바꿨으면 바로 저장, 아니면 새로 해석
+function askSubmit(){
+  const t = document.getElementById('askInput').value.trim();
+  if(PENDING && document.getElementById('preview').classList.contains('show') && (t === '' || t === pvText)){ confirmPending(); return; }
+  onAsk();
 }
 function cancelPending(silent){
   clearInterval(pvTimer);
@@ -1836,7 +1843,11 @@ function toast(msg){
   t.textContent = msg; t.classList.add('show');
   clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), msg.length > 30 ? 5000 : 2600);
 }
-document.addEventListener('keydown', e => { if(e.key === 'Escape'){ closeModal(); } });
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Escape') return;
+  if(document.getElementById('modal').classList.contains('show')) closeModal();
+  else if(PENDING && document.getElementById('preview').classList.contains('show')) cancelPending(); // 미리보기는 Esc로 취소
+});
 let rsT = null, rsW = window.innerWidth; window.addEventListener('resize', () => { if(window.innerWidth === rsW) return; rsW = window.innerWidth; clearTimeout(rsT); rsT = setTimeout(render, 150); }); // 키패드로 높이만 바뀌면 안 그림
 document.addEventListener('visibilitychange', () => { if(!document.hidden){ render(); syncNow(); } }); // 날짜 넘어가면 갱신 + 다른 기기 변경 받기
 window.addEventListener('online', () => { syncErr = ''; syncNow(); });
