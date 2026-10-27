@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10-insta-trade">
+<meta name="app-build-version" content="v10.1-remove">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10-insta-trade';</script>
+<script>window.APP_BUILD = 'v10.1-remove';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -20,21 +20,20 @@
   --ev-bg:#E6F4EA; --ev-tx:#1D5B33; --ev-dot:#34A853;
   --mm-bg:#FFF5D1; --mm-tx:#755800; --mm-dot:#F2B600;
   --dd-bg:#FFE9DA; --dd-tx:#9A4300; --dd-dot:#F57F17;
-  --in-bg:#EFE7FF; --in-tx:#5B2DB3; --in-dot:#8B5CF6; --by-bg:#E3EEFF; --by-tx:#1E4FA0;
   --shadow:0 1px 2px rgba(16,24,20,.04),0 4px 16px rgba(16,24,20,.05);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#0E1311; --card:#171D1A; --cell:#1D2421; --text:#E9EEEB; --sub:#97A39D; --line:#2A3330;
     --sun:#FF7B7F; --sat:#7AA5FF; --accent:#FFD166;
-    --ev-bg:#1E3527; --ev-tx:#A8DDB5; --mm-bg:#3A3215; --mm-tx:#F3D77A; --dd-bg:#3E2814; --dd-tx:#FFC08F; --in-bg:#2E2448; --in-tx:#CDB8FF; --by-bg:#1B2B45; --by-tx:#A9C6FF;
+    --ev-bg:#1E3527; --ev-tx:#A8DDB5; --mm-bg:#3A3215; --mm-tx:#F3D77A; --dd-bg:#3E2814; --dd-tx:#FFC08F;
     --shadow:none;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0E1311; --card:#171D1A; --cell:#1D2421; --text:#E9EEEB; --sub:#97A39D; --line:#2A3330;
   --sun:#FF7B7F; --sat:#7AA5FF; --accent:#FFD166;
-  --ev-bg:#1E3527; --ev-tx:#A8DDB5; --mm-bg:#3A3215; --mm-tx:#F3D77A; --dd-bg:#3E2814; --dd-tx:#FFC08F; --in-bg:#2E2448; --in-tx:#CDB8FF; --by-bg:#1B2B45; --by-tx:#A9C6FF;
+  --ev-bg:#1E3527; --ev-tx:#A8DDB5; --mm-bg:#3A3215; --mm-tx:#F3D77A; --dd-bg:#3E2814; --dd-tx:#FFC08F;
   --shadow:none;
 }
 *{box-sizing:border-box}
@@ -84,7 +83,6 @@ textarea{resize:vertical;min-height:90px;line-height:1.5}
 .fchip.on{color:var(--text)}
 .fchip.f-event.on{border-color:var(--ev-dot);background:var(--ev-bg)} .fchip.f-event.on .box{background:var(--ev-dot);border-color:var(--ev-dot)}
 .fchip.f-memo.on{border-color:var(--mm-dot);background:var(--mm-bg)} .fchip.f-memo.on .box{background:var(--mm-dot);border-color:var(--mm-dot)}
-.fchip.f-insta.on{border-color:var(--in-dot);background:var(--in-bg)} .fchip.f-insta.on .box{background:var(--in-dot);border-color:var(--in-dot)}
 .fchip.f-dday.on{border-color:var(--dd-dot);background:var(--dd-bg)} .fchip.f-dday.on .box{background:var(--dd-dot);border-color:var(--dd-dot)}
 .seg{display:inline-flex;background:var(--cell);border-radius:10px;padding:3px;gap:2px}
 .seg button{border:0;background:none;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;color:var(--sub)}
@@ -111,7 +109,6 @@ textarea{resize:vertical;min-height:90px;line-height:1.5}
 .pill.ev{background:var(--ev-bg);color:var(--ev-tx)}
 .pill.memo{background:var(--mm-bg);color:var(--mm-tx)}
 .pill.dd{background:var(--dd-bg);color:var(--dd-tx)}
-.pill.in{background:var(--in-bg);color:var(--in-tx)}
 .cell .more{font-size:11px;color:var(--sub);margin-top:3px;padding-left:2px}
 @media (max-width:640px){
   .cal{gap:3px}
@@ -141,7 +138,7 @@ textarea{resize:vertical;min-height:90px;line-height:1.5}
 
 /* 공통 버튼·태그 */
 .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px;margin-right:6px;vertical-align:1px}
-.tag.ev{background:var(--ev-bg);color:var(--ev-tx)} .tag.in{background:var(--in-bg);color:var(--in-tx)} .tag.buy{background:var(--by-bg);color:var(--by-tx)} .tag.memo{background:var(--mm-bg);color:var(--mm-tx)} .tag.dd{background:var(--dd-bg);color:var(--dd-tx)}
+.tag.ev{background:var(--ev-bg);color:var(--ev-tx)} .tag.memo{background:var(--mm-bg);color:var(--mm-tx)} .tag.dd{background:var(--dd-bg);color:var(--dd-tx)}
 .btn{border:0;border-radius:10px;padding:10px 16px;font-weight:700}
 .btn.pri{background:var(--text);color:var(--card)}
 .btn.sec{background:var(--card);color:var(--text);border:1px solid var(--line)}
@@ -245,15 +242,7 @@ body.mini{padding-bottom:96px}
 .gperson .gh span{font-size:13px;white-space:nowrap}
 .gperson .gbody{padding:0 14px 10px}
 .gline{display:flex;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:14px;cursor:pointer}
-.gline .m{flex:1;color:var(--sub);font-size:13px;min-width:0;word-break:break-all}
-.tscroll{overflow-x:auto;margin-bottom:2px}
-.ttab{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}
-.ttab th{font-size:12px;color:var(--sub);font-weight:600;text-align:right;padding:6px 8px;border-bottom:1px solid var(--line)}
-.ttab td{text-align:right;padding:6px 8px;border-bottom:1px solid var(--line)}
-.ttab th:first-child,.ttab td:first-child{text-align:left}
-.ttab .tsum td{font-weight:800}
-.dot.in{background:var(--in-dot)}
-.subseg{display:flex;overflow-x:auto;max-width:100%;scrollbar-width:none} .subseg button{flex:none}
+.gline .m{flex:1;color:var(--sub);font-size:13px}
 .refcard{background:var(--cell);border-radius:12px;padding:12px 14px;margin-bottom:8px}
 .refcard h4{margin:0 0 6px;font-size:15px} .refcard .rb{white-space:pre-wrap;line-height:1.55;font-size:14px}
 .linkbtn{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--cell);border-radius:12px;padding:14px;margin-bottom:8px;text-decoration:none;color:var(--text);font-weight:700}
@@ -571,15 +560,6 @@ function parseCommand(raw){
     return {kind:'week', date: ymd(addDays(mon, w === '이번' ? 0 : w === '다다음' ? 14 : 7))};
   }
   if(intent === 'find') return {kind:'find', query: title || raw.trim()};
-  // 인스타 예약: "11월 5일 대박막창 촬영 20만원", "내일 3시 소담식당 인스타 30만원"
-  const im = raw.match(/(\d+(?:[.,]\d+)?)\s*(만\s*원|만|원)/);
-  if(im && /(촬영|인스타)/.test(raw) && !/(냈|줬|보냈|드렸|받았|들어왔)/.test(raw)){
-    const n = parseFloat(im[1].replace(',', '.'));
-    const fee = Math.round(/만/.test(im[2]) ? n * 10000 : n);
-    const co = title.replace(/(\d+(?:[.,]\d+)?)\s*(만\s*원|만|원)/, ' ')
-      .replace(/(인스타그램|인스타|촬영|예약|잡혔어|잡혔다|잡힘|광고)(을|를|으로|로|은|는)?/g, ' ').replace(/\s+/g, ' ').trim();
-    if(fee >= 0 && co) return {kind:'insta', co, fee, date: date ? ymd(date) : null, time, notes};
-  }
   // 경조사 기록: "홍길동 장례식 10만원 냈어", "김철수 결혼식 축의금 20만원 받았어"
   const gm = raw.match(/(\d+(?:[.,]\d+)?)\s*(만\s*원|만|원)/);
   if(gm && /(냈|줬|보냈|드렸|했어|했다|받았|들어왔)/.test(raw) && /(결혼|축의|장례|조문|부의|조의|부고|상가|돌잔치|돌\b|생일|경조)/.test(raw)){
@@ -620,7 +600,7 @@ let viewY = new Date().getFullYear(), viewM = new Date().getMonth();
 let selDate = todayYmd();
 let memoFilter = 'open';
 let findQ = '';
-const calShow = {event:true, memo:true, dday:true, insta:true};
+const calShow = {event:true, memo:true, dday:true};
 const IC = {
   left: '<svg class="ico" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>',
   right: '<svg class="ico" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
@@ -753,7 +733,7 @@ function renderCal(){
         + '<button class="icon-btn" onclick="calStep(1)" aria-label="다음 달">' + IC.right + '</button>'
         + '<button class="btn sec sm" onclick="calToday()">오늘</button></div>')
     + '<div class="filters">'
-    + [['event','일정'],['memo','메모'],['dday','D-day'],['insta','인스타']].map(([k, l]) =>
+    + [['event','일정'],['memo','메모'],['dday','D-day']].map(([k, l]) =>
         '<button class="fchip f-' + k + (calShow[k] ? ' on' : '') + '" onclick="calShow.' + k + '=!calShow.' + k + ';render()"><span class="box">' + (calShow[k] ? IC.check : '') + '</span>' + l + '</button>').join('')
     + '</div><div class="cal-layout"><div><div class="cal">';
   DOW.forEach((d, i) => h += '<div class="dow' + (i===0?' sun':i===6?' sat':'') + '">' + d + '</div>');
@@ -767,7 +747,6 @@ function renderCal(){
     h += '<div class="' + cls.join(' ') + '" onclick="calTap(\'' + s + '\',event)" ondblclick="calDbl(\'' + s + '\',event)"><div class="dn' + dn + '"><span>' + d.getDate() + '</span>' + (isNarrow() ? '' : '<i class="lun">' + lunarLabel(s) + '</i>') + '</div>';
     let pills = [];
     if(calShow.dday) pills = pills.concat(dd.map(o => '<span class="pill dd" data-k="dday" data-id="' + o.x.id + '">' + esc(o.label) + '</span>'));
-    if(calShow.insta) pills = pills.concat(instaOnDate(s).map(o => '<span class="pill in" data-k="insta" data-id="' + o.x.id + '">' + esc(o.label) + '</span>'));
     if(calShow.event) pills = pills.concat(ev.map(x => '<span class="pill ev" data-k="event" data-id="' + x.id + '">' + (x.time ? (isNarrow() ? shortTime(x.time) : x.time.replace(/^0/,'')) + ' ' : '') + esc(x.title) + '</span>'));
     if(calShow.memo) pills = pills.concat(mm.map(x => '<span class="pill memo" data-k="memo" data-id="' + x.id + '">' + esc(x.text.split('\n')[0]) + '</span>'));
     h += pills.slice(0, MAX).join('');
@@ -784,7 +763,7 @@ function shortTime(t){ const [h, m] = t.split(':').map(Number); return h + (m ? 
 function calPillEdit(e){
   const p = e.target.closest('[data-id]'); if(!p) return false;
   const id = p.dataset.id, k = p.dataset.k;
-  if(k === 'event') editEvent(id); else if(k === 'memo') editMemo(id); else if(k === 'insta') editInsta(id); else editDday(id);
+  if(k === 'event') editEvent(id); else if(k === 'memo') editMemo(id); else editDday(id);
   return true;
 }
 function calTap(s, e){
@@ -806,9 +785,7 @@ function sideHtml(){
     + '<div class="muted" style="margin-bottom:12px">' + (sl ? '음력 ' + (sl.intercalation ? '윤' : '') + sl.month + '월 ' + sl.day + '일' : '') + '</div>'
     + '<div class="row" style="margin-bottom:12px"><button class="btn sec sm" onclick="editEvent(null,\'' + selDate + '\')">+ 일정</button>'
     + '<button class="btn sec sm" onclick="editMemo(null,\'' + selDate + '\')">+ 메모</button></div>';
-  const ins = instaOnDate(selDate);
-  if(!ev.length && !mm.length && !dd.length && !ins.length) h += '<div class="empty" style="padding:14px 0">이 날은 비어 있어요.</div>';
-  ins.forEach(o => h += '<div class="scard" onclick="editInsta(\'' + o.x.id + '\')"><div class="st"><i class="dot in"></i>' + esc(o.label) + '</div><div class="ss">인스타 · ' + won(o.x.fee) + (o.x.paid ? ' · 입금' : '') + (o.x.note ? '\n' + esc(o.x.note) : '') + '</div></div>');
+  if(!ev.length && !mm.length && !dd.length) h += '<div class="empty" style="padding:14px 0">이 날은 비어 있어요.</div>';
   dd.forEach(o => h += '<div class="scard" onclick="editDday(\'' + o.x.id + '\')"><div class="st"><i class="dot dd"></i>' + esc(o.label) + '</div><div class="ss">기념일</div></div>');
   ev.forEach(x => h += '<div class="scard" onclick="editEvent(\'' + x.id + '\')"><button class="sdel" aria-label="삭제" onclick="event.stopPropagation();quickDelete(\'' + x.id + '\')">' + IC.x + '</button><div class="st"><i class="dot ev"></i>' + esc(x.title) + '</div><div class="ss">' + (x.time ? fmtTime(x.time) : '종일') + (x.note ? '\n' + esc(x.note) : '') + '</div></div>');
   mm.forEach(x => h += '<div class="scard" onclick="editMemo(\'' + x.id + '\')"><button class="sdel" aria-label="삭제" onclick="event.stopPropagation();quickDelete(\'' + x.id + '\')">' + IC.x + '</button><div class="st"><i class="dot memo"></i>' + esc(x.text.split('\n')[0]) + '</div>' + (x.text.includes('\n') ? '<div class="ss">' + esc(x.text.split('\n').slice(1).join('\n')) + '</div>' : '<div class="ss">메모</div>') + '</div>');
@@ -873,9 +850,6 @@ function itemText(x){
   if(x.type === 'gift') return [x.nm, x.ev, x.rel, x.grp, x.memo].filter(Boolean).join(' ');
   if(x.type === 'ref') return [x.title, x.cat, x.keys, x.body].filter(Boolean).join(' ');
   if(x.type === 'link') return [x.title, x.url].filter(Boolean).join(' ');
-  if(x.type === 'insta') return ['인스타', x.co, x.note, x.shoot ? '촬영 ' + x.shoot : ''].filter(Boolean).join(' ');
-  if(x.type === 'trade') return [x.dir === 'buy' ? '매입' : '매출', x.co, x.item, x.tag, x.note, x.d].filter(Boolean).join(' ');
-  if(x.type === 'cfg') return '';
   return (x.title || '') + ' ' + (x.note || '');
 }
 function searchItems(q){
@@ -914,8 +888,6 @@ function findCard(x, q){
   if(x.type === 'memo') return '<div class="mcard" onclick="editMemo(\'' + x.id + '\')"><div style="flex:1;min-width:0"><div><span class="tag memo">메모</span><span class="muted">' + (x.date ? fmtDate(x.date) + ' · ' : '') + new Date(x.created).toLocaleDateString('ko-KR') + '</span></div><div class="mtext" style="margin-top:4px">' + hl(x.text, q) + '</div></div></div>';
   if(x.type === 'gift') return '<div class="mcard" onclick="editGift(\'' + x.id + '\')"><div style="flex:1;min-width:0"><div><span class="tag dd">경조사</span><span class="muted">' + esc(x.ev || '') + (x.d ? ' · ' + fmtDate(x.d, true) : '') + '</span></div><div class="mtext" style="font-weight:700;margin-top:4px">' + hl(x.nm, q) + ' · <span class="' + (x.dir === 'in' ? 'gin' : 'gout') + '">' + won(x.a) + (x.dir === 'in' ? ' 받음' : ' 냄') + '</span></div>' + (x.memo ? '<div class="mtext muted">' + hl(x.memo, q) + '</div>' : '') + '</div></div>';
   if(x.type === 'ref') return '<div class="mcard" onclick="openRef(\'' + x.id + '\')"><div style="flex:1;min-width:0"><div><span class="tag ev">회사 규정</span><span class="muted">' + esc(x.cat || '') + '</span></div><div class="mtext" style="font-weight:700;margin-top:4px">' + hl(x.title, q) + '</div><div class="mtext muted">' + esc(String(x.body || '').split('\n')[0]) + '</div></div></div>';
-  if(x.type === 'insta') return '<div class="mcard" onclick="editInsta(\'' + x.id + '\')"><div style="flex:1;min-width:0"><div><span class="tag in">인스타</span><span class="muted">' + (x.shoot ? '촬영 ' + fmtDate(x.shoot, true) : '촬영일 미정') + '</span></div><div class="mtext" style="font-weight:700;margin-top:4px">' + hl(x.co, q) + ' · ' + won(x.fee) + (x.paid ? ' · 입금' : ' · 미입금') + '</div>' + (x.note ? '<div class="mtext muted">' + hl(x.note, q) + '</div>' : '') + '</div></div>';
-  if(x.type === 'trade') return '<div class="mcard" onclick="editTrade(\'' + x.id + '\')"><div style="flex:1;min-width:0"><div><span class="tag ' + (x.dir === 'buy' ? 'buy' : 'ev') + '">' + (x.dir === 'buy' ? '매입' : '매출') + '</span><span class="muted">' + (x.d ? fmtDate(x.d, true) : '') + '</span></div><div class="mtext" style="font-weight:700;margin-top:4px">' + hl(x.co, q) + ' · ' + hl(x.item || '', q) + ' · ' + num(x.q) + ' × ' + num(x.p) + ' = ' + won(tradeAmt(x)) + '</div></div></div>';
   if(x.type === 'link') return '<a class="mcard" href="' + esc(x.url) + '" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><div style="flex:1;min-width:0"><div><span class="tag memo">바로가기</span></div><div class="mtext" style="font-weight:700;margin-top:4px">' + hl(x.title, q) + '</div></div></a>';
   return '<div class="mcard" onclick="editDday(\'' + x.id + '\')"><div style="flex:1;min-width:0"><div><span class="tag dd">D-day</span><span class="muted">' + esc(ddDateLabel(x)) + '</span></div><div class="mtext" style="font-weight:700;margin-top:4px">' + hl(x.title, q) + '</div></div></div>';
 }
@@ -949,8 +921,8 @@ async function runAiSearch(fromVoice){
     return;
   }
   aiFind = {q, busy:true, answer:'', ids:[], failed:false}; renderFindResults();
-  const typeName = {event:'일정', memo:'메모', dday:'D-day', gift:'경조사', ref:'회사규정', link:'바로가기', insta:'인스타', trade:'매입매출'};
-  const items = live().filter(x => typeName[x.type]).slice().sort((a, b) => (b.updated || 0) - (a.updated || 0)).slice(0, 600)
+  const typeName = {event:'일정', memo:'메모', dday:'D-day', gift:'경조사', ref:'회사규정', link:'바로가기'};
+  const items = live().slice().sort((a, b) => (b.updated || 0) - (a.updated || 0)).slice(0, 600)
     .map(x => x.id + '|' + typeName[x.type] + '|' + (x.date || '') + (x.time ? ' ' + x.time : '') + '|' + String(x.type === 'gift' ? x.nm + ' ' + x.ev + ' ' + won(x.a) + (x.dir === 'in' ? ' 받음' : ' 냄') : itemText(x)).replace(/\s+/g, ' ').slice(0, 150));
   const res = await aiCall({action:'search', query:q, items}, 15000);
   if(findQ.trim() !== q) return;
@@ -968,18 +940,15 @@ const gifts = () => live().filter(x => x.type === 'gift');
 const refs  = () => live().filter(x => x.type === 'ref').sort((a, b) => (a.ord || 0) - (b.ord || 0));
 const links = () => live().filter(x => x.type === 'link').sort((a, b) => (a.created || 0) - (b.created || 0));
 function renderMore(){
-  const subs = [['gift','경조사'],['insta','인스타'],['trade','매입매출'],['ref','회사 규정'],['link','바로가기']];
-  let h = '<div class="panel">' + panelHead('서랍', '경조사 · 인스타 예약 · 매입매출 · 회사 규정 · 자주 가는 곳')
-    + '<div class="seg subseg" style="margin-bottom:14px">' + subs.map(([k, l]) => '<button class="' + (moreSub === k ? 'on' : '') + '" onclick="moreSub=\'' + k + '\';renderMore()">' + l + '</button>').join('') + '</div>';
+  const subs = [['gift','경조사 장부'],['ref','회사 규정'],['link','바로가기']];
+  let h = '<div class="panel">' + panelHead('서랍', '경조사 장부 · 회사 규정 · 자주 가는 곳')
+    + '<div class="seg" style="margin-bottom:14px">' + subs.map(([k, l]) => '<button class="' + (moreSub === k ? 'on' : '') + '" onclick="moreSub=\'' + k + '\';renderMore()">' + l + '</button>').join('') + '</div>';
   if(moreSub === 'gift') h += '<div class="row" style="flex-wrap:nowrap;margin-bottom:10px"><div class="search" style="flex:1;margin:0">' + IC.search + '<input id="giftInput" placeholder="이름·관계·메모로 찾기" value="' + esc(giftQ) + '" oninput="giftQ=this.value;renderDrawerBody()"></div><button class="btn pri" onclick="editGift(null)">+ 기록</button></div>'
     + '<div class="seg" style="margin-bottom:12px">' + [['name','이름순'],['in','받은 순'],['out','낸 순'],['recent','최근']].map(([k, l]) => '<button class="' + (giftSort === k ? 'on' : '') + '" onclick="giftSort=\'' + k + '\';renderMore()">' + l + '</button>').join('') + '</div>';
   if(moreSub === 'ref') h += '<div class="search" style="margin-bottom:10px">' + IC.search + '<input id="refInput" placeholder="예) 장인상, 연차, 대부" value="' + esc(refQ) + '" oninput="refQ=this.value;renderDrawerBody()"></div>'
     + '<div class="chips">' + [['','전체'],['경조사','경조사'],['휴가','휴가'],['복지','복지·대부'],['절차','신청 절차']].map(([k, l]) => '<button class="chip' + (refCat === k ? ' on' : '') + '" onclick="refCat=\'' + k + '\';renderMore()">' + l + '</button>').join('') + '</div>'
     + '<div class="refcard"><h4>연차 계산</h4><div class="row" style="flex-wrap:nowrap"><input type="date" id="f_join" style="flex:1" onchange="calcLeave()"><span id="leaveOut" style="font-weight:800;white-space:nowrap">입사일을 넣어 주세요</span></div><div class="muted" style="margin-top:6px">입사일 기준 계산 — 실제 부여일수는 관리부 확인</div></div>';
   if(moreSub === 'link') h += '<div class="row" style="justify-content:flex-end;margin-bottom:10px"><button class="btn pri sm" onclick="editLink(null)">+ 바로가기</button></div>';
-  if(moreSub === 'insta') h += '<div class="row" style="justify-content:flex-end;margin-bottom:10px"><button class="btn sec sm" onclick="exportXlsx(\'insta\')">엑셀로 받기</button><button class="btn pri sm" onclick="editInsta(null)">+ 예약</button></div>';
-  if(moreSub === 'trade') h += '<div class="row" style="flex-wrap:nowrap;margin-bottom:10px"><div class="search" style="flex:1;margin:0">' + IC.search + '<input id="tradeInput" placeholder="업체·품명으로 찾기" value="' + esc(tradeQ) + '" oninput="tradeQ=this.value;renderDrawerBody()"></div><button class="btn pri" onclick="editTrade(null)">+ 기록</button></div>'
-    + '<div class="row" style="justify-content:space-between;margin-bottom:12px"><div class="seg">' + [['all','전체'],['sell','매출'],['buy','매입'],['todo','체크 남음']].map(([k, l]) => '<button class="' + (tradeFilter === k ? 'on' : '') + '" onclick="tradeFilter=\'' + k + '\';renderMore()">' + l + '</button>').join('') + '</div><button class="btn sec sm" onclick="exportXlsx(\'trade\')">엑셀로 받기</button></div>';
   document.getElementById('tab-more').innerHTML = h + '<div id="drawerBody"></div></div>';
   renderDrawerBody();
 }
@@ -987,8 +956,6 @@ function renderDrawerBody(){
   const box = document.getElementById('drawerBody'); if(!box) return;
   if(moreSub === 'gift') box.innerHTML = giftListHtml();
   else if(moreSub === 'ref') box.innerHTML = refListHtml();
-  else if(moreSub === 'insta') box.innerHTML = instaListHtml();
-  else if(moreSub === 'trade') box.innerHTML = tradeListHtml();
   else box.innerHTML = linkListHtml();
 }
 // 사람별로 묶기(이름 같으면 한 사람)
@@ -1119,258 +1086,6 @@ function saveLink(id){
   const x = id ? DB.items.find(i => i.id === id) : {id: uid(), type:'link'};
   Object.assign(x, {title, url});
   upsert(x); closeModal(); toast('저장했어요');
-}
-
-// ---------- 인스타 예약 · 매입매출 (v10) ----------
-// 인스타 {type:'insta', req, shoot, up, st:'예정'|'완료'|'취소', co, fee, tax(0·0.033·0.03), net(null=자동), paid, note}
-// 매입매출 {type:'trade', dir:'buy'|'sell', d, co, item, q, p, inv, paid, tag(엑셀 '열1'), note, dest, addr, mgr, tel, pal}
-// 설정 {id:'cfg-trade', type:'cfg', taxFree:[업체…]} — 폐유 부가세 면세 업체(엑셀 9월 집계 L열)
-let instaYM = todayYmd().slice(0, 7), tradeYM = todayYmd().slice(0, 7), tradeFilter = 'all', tradeQ = '';
-const instas = () => live().filter(x => x.type === 'insta');
-const trades = () => live().filter(x => x.type === 'trade');
-const isWaste = x => /폐/.test(x.item || '');
-function instaNet(x){ return x.net != null && x.net !== '' ? Number(x.net) : Math.round(Number(x.fee || 0) * (1 - Number(x.tax || 0))); }
-function tradeAmt(x){ return Math.round(Number(x.q || 0) * Number(x.p || 0)); }
-function tradeCfg(){ return DB.items.find(x => x.id === 'cfg-trade' && !x.deleted) || {taxFree: ['장원산업']}; }
-function ymStep(ym, n){ const [y, m] = ym.split('-').map(Number); const d = new Date(y, m - 1 + n, 1); return d.getFullYear() + '-' + pad(d.getMonth() + 1); }
-function ymLabel(ym){ const [y, m] = ym.split('-').map(Number); return y + '년 ' + m + '월'; }
-function monthNav(ym, fn){
-  return '<div class="mnav" style="margin-bottom:12px"><button class="icon-btn" onclick="' + fn + '(-1)" aria-label="이전 달">' + IC.left + '</button><b>' + ymLabel(ym) + '</b>'
-    + '<button class="icon-btn" onclick="' + fn + '(1)" aria-label="다음 달">' + IC.right + '</button><button class="btn sec sm" onclick="' + fn + '(0)">이번 달</button></div>';
-}
-function instaStep(n){ instaYM = n ? ymStep(instaYM, n) : todayYmd().slice(0, 7); renderDrawerBody(); }
-function tradeStep(n){ tradeYM = n ? ymStep(tradeYM, n) : todayYmd().slice(0, 7); renderDrawerBody(); }
-const md = s => s ? Number(s.slice(5, 7)) + '/' + Number(s.slice(8, 10)) : '미정';
-const num = n => Number(n || 0).toLocaleString('ko-KR');
-
-// 인스타 장부
-function instaLine(x){
-  const badge = x.st === '취소' ? '<span class="tag memo">취소</span>' : x.paid ? '<span class="tag ev">입금</span>' : '<span class="tag dd">미입금</span>';
-  return '<div class="gline" onclick="editInsta(\'' + x.id + '\')"><span style="white-space:nowrap;font-weight:700;min-width:38px">' + md(x.shoot) + '</span>'
-    + '<span class="m"><b style="color:var(--text)">' + esc(x.co) + '</b>' + (x.up && x.up !== x.shoot ? ' · 업로드 ' + md(x.up) : '') + (x.note ? ' · ' + esc(x.note) : '') + '</span>'
-    + '<span style="white-space:nowrap;text-align:right">' + won(x.fee) + '<br>' + badge + '</span></div>';
-}
-function instaListHtml(){
-  const all = instas(), key = x => x.shoot || x.req || '';
-  const sumF = a => a.reduce((t, x) => t + Number(x.fee || 0), 0), sumN = a => a.reduce((t, x) => t + instaNet(x), 0);
-  const live1 = all.filter(x => x.st !== '취소');
-  const inM = live1.filter(x => key(x).slice(0, 7) === instaYM).sort((a, b) => key(a).localeCompare(key(b)));
-  const upto = live1.filter(x => key(x) && key(x).slice(0, 7) <= instaYM);
-  const t = todayYmd();
-  const unpaid = live1.filter(x => !x.paid && Number(x.fee || 0) > 0 && x.shoot && x.shoot <= t).sort((a, b) => key(a).localeCompare(key(b)));
-  const soon = live1.filter(x => x.shoot && x.shoot >= t).sort((a, b) => key(a).localeCompare(key(b))).slice(0, 6);
-  let h = '';
-  if(unpaid.length) h += '<div class="refcard" style="border:1.5px solid var(--dd-dot)"><h4>입금 확인 필요 ' + unpaid.length + '건 · ' + won(sumN(unpaid)) + '</h4>' + unpaid.map(instaLine).join('') + '</div>';
-  if(soon.length) h += '<div class="refcard"><h4>다가오는 촬영</h4>' + soon.map(instaLine).join('') + '</div>';
-  h += monthNav(instaYM, 'instaStep')
-    + '<div class="gtot"><div><dt>건수</dt><dd>' + inM.length + '건</dd></div><div><dt>비용</dt><dd>' + won(sumF(inM)) + '</dd></div><div><dt>입금액</dt><dd class="gin">' + won(sumN(inM)) + '</dd></div></div>'
-    + '<div class="muted" style="margin:-4px 0 10px">' + ymLabel(instaYM) + '까지 누적 ' + upto.length + '건 · 비용 ' + won(sumF(upto)) + ' · 입금액 ' + won(sumN(upto)) + ' (촬영일 기준, 취소 제외)</div>';
-  h += inM.length ? '<div class="refcard">' + inM.map(instaLine).join('') + '</div>' : '<div class="empty">이 달 촬영이 없어요.<br>"11월 5일 대박막창 촬영 20만원"처럼 말해도 돼요.</div>';
-  return h;
-}
-function editInsta(id, preset){
-  const x = id ? DB.items.find(i => i.id === id) : Object.assign({type:'insta', req: todayYmd(), shoot:'', up:'', st:'예정', co:'', fee:'', tax:0, net:null, paid:false, note:''}, preset || {});
-  if(!x) return;
-  const taxes = [[0, '없음'], [0.033, '3.3%'], [0.03, '3%']];
-  openModal('<h2>' + (id ? '인스타 예약 수정' : '인스타 예약') + '</h2>'
-    + '<div class="field"><label>업체명</label><input id="i_co" value="' + esc(x.co) + '" placeholder="예) 대박막창"></div>'
-    + '<div class="row"><div class="field" style="flex:1"><label>비용(원)</label><input id="i_fee" inputmode="numeric" value="' + esc(x.fee) + '" oninput="instaNetHint()"></div>'
-    + '<div class="field" style="flex:1"><label>세금</label><select id="i_tax" onchange="instaNetHint()">' + taxes.map(([v, l]) => '<option value="' + v + '"' + (Number(x.tax || 0) === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></div></div>'
-    + '<div class="field"><label>입금액(원) <span class="muted" id="i_nethint"></span></label><input id="i_net" inputmode="numeric" value="' + esc(x.net == null ? '' : x.net) + '" placeholder="비우면 자동 계산"></div>'
-    + '<div class="row"><div class="field" style="flex:1"><label>촬영일</label><input type="date" id="i_shoot" value="' + esc(x.shoot || '') + '"></div><div class="field" style="flex:1"><label>업로드일</label><input type="date" id="i_up" value="' + esc(x.up || '') + '"></div></div>'
-    + '<div class="row"><div class="field" style="flex:1"><label>요청일</label><input type="date" id="i_req" value="' + esc(x.req || '') + '"></div><div class="field" style="flex:1"><label>진행</label><select id="i_st">' + ['예정', '완료', '취소'].map(s => '<option' + ((x.st || '예정') === s ? ' selected' : '') + '>' + s + '</option>').join('') + '</select></div></div>'
-    + '<div class="field"><label><input type="checkbox" id="i_paid"' + (x.paid ? ' checked' : '') + ' style="width:auto;margin-right:6px">입금 받음</label></div>'
-    + '<div class="field"><label>비고</label><input id="i_note" value="' + esc(x.note || '') + '" placeholder="시간·장소·소개 등"></div>'
-    + '<div class="row" style="justify-content:space-between;margin-top:6px">'
-    + (id ? '<button class="btn warn" onclick="closeModal();quickDelete(\'' + id + '\')">삭제</button>' : '<span></span>')
-    + '<div class="row"><button class="btn sec" onclick="closeModal()">닫기</button><button class="btn pri" onclick="saveInsta(\'' + (id || '') + '\')">저장</button></div></div>');
-  instaNetHint();
-}
-function instaNetHint(){
-  const el = document.getElementById('i_nethint'); if(!el) return;
-  const fee = parseInt(val('i_fee').replace(/[^\d]/g, ''), 10) || 0, tax = Number(val('i_tax') || 0);
-  el.textContent = '자동: ' + won(Math.round(fee * (1 - tax)));
-}
-function saveInsta(id){
-  const co = val('i_co'); if(!co){ toast('업체명을 넣어 주세요'); return; }
-  const n = s => { const v = String(s).replace(/[^\d]/g, ''); return v === '' ? null : parseInt(v, 10); };
-  const x = id ? DB.items.find(i => i.id === id) : {id: uid(), type:'insta'};
-  Object.assign(x, {co, fee: n(val('i_fee')) || 0, tax: Number(val('i_tax') || 0), net: n(val('i_net')), shoot: val('i_shoot') || null, up: val('i_up') || null,
-    req: val('i_req') || null, st: val('i_st') || '예정', paid: document.getElementById('i_paid').checked, note: val('i_note')});
-  upsert(x); closeModal(); toast('저장했어요');
-}
-function instaOnDate(s){ // 달력용: 촬영·업로드
-  const out = [];
-  instas().forEach(x => {
-    if(x.st === '취소') return;
-    if(x.shoot === s) out.push({x, label: '촬영 ' + x.co});
-    else if(x.up === s) out.push({x, label: '업로드 ' + x.co});
-  });
-  return out;
-}
-
-// 매입매출 장부
-function tradeAgg(list){ // 업체별 {bq, ba, sq, sa}
-  const m = new Map();
-  list.forEach(x => {
-    const k = x.co || '(업체 없음)';
-    if(!m.has(k)) m.set(k, {co: k, bq: 0, ba: 0, sq: 0, sa: 0});
-    const r = m.get(k), q = Number(x.q || 0), a = tradeAmt(x);
-    if(x.dir === 'buy'){ r.bq += q; r.ba += a; } else { r.sq += q; r.sa += a; }
-  });
-  return [...m.values()].sort((a, b) => (b.ba + b.sa) - (a.ba + a.sa));
-}
-function tradeTable(rows, head, note){
-  const tot = rows.reduce((t, r) => ({bq: t.bq + r.bq, ba: t.ba + r.ba, sq: t.sq + r.sq, sa: t.sa + r.sa}), {bq: 0, ba: 0, sq: 0, sa: 0});
-  let h = '<div class="side-sec" style="margin-top:4px">' + head + '</div>' + (note ? '<div class="muted" style="margin-bottom:6px">' + note + '</div>' : '')
-    + '<div class="tscroll"><table class="ttab"><tr><th>업체</th><th>매입 수량</th><th>매입 금액</th><th>매출 수량</th><th>매출 금액</th></tr>';
-  rows.forEach(r => h += '<tr><td>' + esc(r.co) + '</td><td>' + num(r.bq) + '</td><td>' + num(r.ba) + '</td><td>' + num(r.sq) + '</td><td>' + num(r.sa) + '</td></tr>');
-  h += '<tr class="tsum"><td>합계</td><td>' + num(tot.bq) + '</td><td>' + num(tot.ba) + '</td><td>' + num(tot.sq) + '</td><td>' + num(tot.sa) + '</td></tr></table></div>';
-  return {h, tot};
-}
-function tradeLine(x){
-  const chk = (on, l) => '<span class="tag ' + (on ? 'ev' : 'memo') + '" style="margin:0 0 0 4px">' + l + (on ? ' O' : ' X') + '</span>';
-  return '<div class="gline" onclick="editTrade(\'' + x.id + '\')"><span style="white-space:nowrap;font-weight:700;min-width:38px">' + md(x.d) + '</span>'
-    + '<span class="m"><span class="tag ' + (x.dir === 'buy' ? 'buy' : 'ev') + '">' + (x.dir === 'buy' ? '매입' : '매출') + '</span><b style="color:var(--text)">' + esc(x.co) + '</b> · ' + esc(x.item || '')
-    + '<br>' + num(x.q) + ' × ' + num(x.p) + (x.tag ? ' · ' + esc(x.tag) : '') + (x.note ? ' · ' + esc(x.note) : '') + '</span>'
-    + '<span style="white-space:nowrap;text-align:right"><b>' + num(tradeAmt(x)) + '</b><br>' + chk(x.inv, '계산서') + chk(x.paid, '입금') + '</span></div>';
-}
-function tradeListHtml(){
-  const inM = trades().filter(x => (x.d || '').slice(0, 7) === tradeYM);
-  const free = new Set((tradeCfg().taxFree || []).map(s => String(s).replace(/\s+/g, '')));
-  let h = monthNav(tradeYM, 'tradeStep');
-  // ① 폐유: 단가 부가세 별도 → 공급가 = 수량×단가, 부가세는 면세 업체 빼고 10%
-  const w = tradeTable(tradeAgg(inM.filter(isWaste)), '① 폐유 (부가세 별도)');
-  const vatOf = dir => inM.filter(x => isWaste(x) && x.dir === dir && !free.has(String(x.co || '').replace(/\s+/g, ''))).reduce((t, x) => t + Math.round(tradeAmt(x) * 0.1), 0);
-  const wbv = vatOf('buy'), wsv = vatOf('sell');
-  h += w.h + '<div class="muted" style="margin:4px 0 12px">부가세 — 매입 ' + won(wbv) + ' (합계 ' + won(w.tot.ba + wbv) + ') · 매출 ' + won(wsv) + ' (합계 ' + won(w.tot.sa + wsv) + ')'
-    + ' · 면세 업체: ' + esc([...(tradeCfg().taxFree || [])].join(', ') || '없음') + ' <a href="#" onclick="event.preventDefault();editTaxFree()">바꾸기</a></div>';
-  // ② 식용유: 단가에 부가세 포함 → 공급가 = 합계 ÷ 1.1
-  const o = tradeTable(tradeAgg(inM.filter(x => !isWaste(x))), '② 식용유 (단가에 부가세 포함)');
-  const sup = a => Math.round(a / 1.1);
-  h += o.h + '<div class="muted" style="margin:4px 0 12px">공급가액(÷1.1) — 매입 ' + won(sup(o.tot.ba)) + ' · 매출 ' + won(sup(o.tot.sa)) + '</div>';
-  h += '<div class="gtot"><div><dt>매입 공급가</dt><dd class="gout">' + won(w.tot.ba + sup(o.tot.ba)) + '</dd></div><div><dt>매출 공급가</dt><dd class="gin">' + won(w.tot.sa + sup(o.tot.sa)) + '</dd></div><div><dt>건수</dt><dd>' + inM.length + '건</dd></div></div>';
-  // 목록
-  const q = normalizeKo(tradeQ);
-  let rows = inM.filter(x => tradeFilter === 'all' || (tradeFilter === 'todo' ? (!x.inv || !x.paid) : x.dir === tradeFilter));
-  if(q) rows = rows.filter(x => normalizeKo((x.co || '') + (x.item || '') + (x.tag || '') + (x.note || '')).includes(q));
-  rows.sort((a, b) => (a.d || '').localeCompare(b.d || '') || (a.created || 0) - (b.created || 0));
-  h += '<div class="side-sec">거래 ' + rows.length + '건</div>';
-  h += rows.length ? '<div class="refcard">' + rows.map(tradeLine).join('') + '</div>' : '<div class="empty">이 달 거래가 없어요.</div>';
-  return h;
-}
-function editTaxFree(){
-  const cur = (tradeCfg().taxFree || []).join(', ');
-  const v = prompt('폐유 부가세가 면세인 업체 (쉼표로 구분)', cur);
-  if(v == null) return;
-  const c = DB.items.find(x => x.id === 'cfg-trade') || {id: 'cfg-trade', type: 'cfg'};
-  delete c.deleted; c.taxFree = v.split(',').map(s => s.trim()).filter(Boolean);
-  upsert(c); toast('저장했어요');
-}
-function editTrade(id, preset){
-  const x = id ? DB.items.find(i => i.id === id) : Object.assign({type:'trade', dir:'sell', d: todayYmd(), co:'', item:'', q:'', p:'', inv:false, paid:false, tag:'', note:'', dest:'', addr:'', mgr:'', tel:'', pal:''}, preset || {});
-  if(!x) return;
-  const cos = [...new Set(trades().map(t => t.co).filter(Boolean))], items = [...new Set(trades().map(t => t.item).filter(Boolean))];
-  openModal('<h2>' + (id ? '매입매출 수정' : '매입매출 기록') + '</h2>'
-    + '<div class="field"><div class="seg">' + [['sell', '매출'], ['buy', '매입']].map(([k, l]) => '<button type="button" id="td_' + k + '" class="' + (x.dir === k ? 'on' : '') + '" onclick="document.getElementById(\'td_buy\').className=\'\';document.getElementById(\'td_sell\').className=\'\';this.className=\'on\'">' + l + '</button>').join('') + '</div></div>'
-    + '<div class="row"><div class="field" style="flex:1"><label>납품요청일</label><input type="date" id="t_d" value="' + esc(x.d || '') + '"></div><div class="field" style="flex:1.2"><label>업체</label><input id="t_co" list="t_cos" value="' + esc(x.co) + '" placeholder="예) 원주오일"><datalist id="t_cos">' + cos.map(c => '<option value="' + esc(c) + '">').join('') + '</datalist></div></div>'
-    + '<div class="field"><label>품명</label><input id="t_item" list="t_items" value="' + esc(x.item) + '" placeholder="예) 원주식용유, 폐식용유"><datalist id="t_items">' + items.map(c => '<option value="' + esc(c) + '">').join('') + '</datalist></div>'
-    + '<div class="row"><div class="field" style="flex:1"><label>수량</label><input id="t_q" inputmode="numeric" value="' + esc(x.q) + '" oninput="tradeAmtHint()"></div><div class="field" style="flex:1"><label>단가</label><input id="t_p" inputmode="numeric" value="' + esc(x.p) + '" oninput="tradeAmtHint()"></div></div>'
-    + '<div class="muted" id="t_amt" style="margin:-4px 0 10px"></div>'
-    + '<div class="row" style="margin-bottom:10px"><label style="font-weight:600"><input type="checkbox" id="t_inv"' + (x.inv ? ' checked' : '') + ' style="width:auto;margin-right:6px">계산서 발행</label><label style="font-weight:600"><input type="checkbox" id="t_paid"' + (x.paid ? ' checked' : '') + ' style="width:auto;margin-right:6px">입금</label></div>'
-    + '<div class="row"><div class="field" style="flex:1"><label>표시(열1)</label><input id="t_tag" value="' + esc(x.tag || '') + '" placeholder="녹음·기봉판매 등"></div><div class="field" style="flex:1.4"><label>비고</label><input id="t_note" value="' + esc(x.note || '') + '"></div></div>'
-    + '<details style="margin-bottom:10px"><summary class="muted">도착지·주소·담당자</summary>'
-    + '<div class="row" style="margin-top:8px"><div class="field" style="flex:1"><label>도착지</label><input id="t_dest" value="' + esc(x.dest || '') + '"></div><div class="field" style="flex:1"><label>파렛트</label><input id="t_pal" value="' + esc(x.pal || '') + '"></div></div>'
-    + '<div class="field"><label>주소</label><input id="t_addr" value="' + esc(x.addr || '') + '"></div>'
-    + '<div class="row"><div class="field" style="flex:1"><label>담당자</label><input id="t_mgr" value="' + esc(x.mgr || '') + '"></div><div class="field" style="flex:1"><label>연락처</label><input id="t_tel" value="' + esc(x.tel || '') + '"></div></div></details>'
-    + '<div class="row" style="justify-content:space-between;margin-top:6px">'
-    + (id ? '<div class="row"><button class="btn warn" onclick="closeModal();quickDelete(\'' + id + '\')">삭제</button><button class="btn sec" onclick="tradeCopy(\'' + id + '\')">복사해서 새로</button></div>' : '<span></span>')
-    + '<div class="row"><button class="btn sec" onclick="closeModal()">닫기</button><button class="btn pri" onclick="saveTrade(\'' + (id || '') + '\')">저장</button></div></div>');
-  tradeAmtHint();
-}
-function tradeAmtHint(){
-  const el = document.getElementById('t_amt'); if(!el) return;
-  const q = Number(val('t_q').replace(/[^\d.]/g, '')) || 0, p = Number(val('t_p').replace(/[^\d.]/g, '')) || 0;
-  el.textContent = q && p ? '금액(수량×단가) ' + won(Math.round(q * p)) : '';
-}
-function tradeCopy(id){
-  const s = DB.items.find(i => i.id === id); if(!s) return;
-  const c = JSON.parse(JSON.stringify(s)); ['id', 'created', 'updated', 'src'].forEach(k => delete c[k]);
-  Object.assign(c, {d: todayYmd(), inv: false, paid: false});
-  closeModal(); editTrade(null, c);
-}
-function saveTrade(id){
-  const co = val('t_co'), item = val('t_item');
-  const q = Number(val('t_q').replace(/[^\d.]/g, '')) || 0, p = Number(val('t_p').replace(/[^\d.]/g, '')) || 0;
-  if(!co || !item){ toast('업체와 품명을 넣어 주세요'); return; }
-  if(!/폐/.test(item) && q >= 1000 && p > 0 && p < 1000 && confirm('수량 ' + num(q) + ', 단가 ' + num(p) + ' — 수량과 단가가 바뀐 것 같아요. 바꿔서 저장할까요?')){
-    document.getElementById('t_q').value = p; document.getElementById('t_p').value = q; return saveTrade(id);
-  }
-  const x = id ? DB.items.find(i => i.id === id) : {id: uid(), type:'trade'};
-  Object.assign(x, {dir: document.getElementById('td_buy').className === 'on' ? 'buy' : 'sell', d: val('t_d') || todayYmd(), co, item, q, p,
-    inv: document.getElementById('t_inv').checked, paid: document.getElementById('t_paid').checked, tag: val('t_tag'), note: val('t_note'),
-    dest: val('t_dest'), addr: val('t_addr'), mgr: val('t_mgr'), tel: val('t_tel'), pal: val('t_pal')});
-  upsert(x); closeModal(); toast('저장했어요');
-}
-
-// 엑셀 내보내기(원래 엑셀과 같은 칸) — SheetJS는 누를 때만 받아옴
-let xlsxP = null;
-function loadXLSX(){
-  if(window.XLSX) return Promise.resolve(window.XLSX);
-  if(!xlsxP) xlsxP = new Promise((ok, no) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-    s.onload = () => ok(window.XLSX); s.onerror = () => { xlsxP = null; no(new Error('load')); };
-    document.head.appendChild(s);
-  });
-  return xlsxP;
-}
-const xDate = s => { if(!s) return null; const b = ymdParts(s); return new Date(Date.UTC(b.y, b.m - 1, b.d)); };
-function xSheet(X, rows, widths){
-  const ws = X.utils.aoa_to_sheet(rows, {cellDates: true, dateNF: 'yyyy-mm-dd'});
-  if(widths) ws['!cols'] = widths.map(w => ({wch: w}));
-  return ws;
-}
-function saveXlsx(X, wb, name){ // 파일 이름이 그대로 남게 직접 내려받기
-  const blob = new Blob([X.write(wb, {bookType: 'xlsx', type: 'array'})], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-}
-function monthsBetween(a, b){ const out = []; let m = a; while(m <= b){ out.push(m); m = ymStep(m, 1); } return out; }
-async function exportXlsx(kind){
-  let X; try{ X = await loadXLSX(); }catch(e){ toast('엑셀 도구를 받지 못했어요 — 인터넷 연결을 확인해 주세요'); return; }
-  const wb = X.utils.book_new(), stamp = todayYmd().replace(/-/g, '');
-  if(kind === 'insta'){
-    const list = instas().sort((a, b) => String(a.shoot || a.req || '').localeCompare(String(b.shoot || b.req || '')));
-    const rows = [['요청일', '촬영일', '업로드일', '진행사항', '업체명', '비용', '세금', '입금액', '입금', '비고']]
-      .concat(list.map(x => [xDate(x.req), xDate(x.shoot), xDate(x.up), x.st === '예정' ? '' : x.st, x.co, Number(x.fee || 0), Number(x.tax || 0) || null, instaNet(x), x.paid ? 'O' : '', x.note || '']));
-    X.utils.book_append_sheet(wb, xSheet(X, rows, [11, 11, 11, 8, 22, 10, 6, 10, 5, 40]), '인스타예약');
-    const ms = list.map(x => (x.shoot || x.req || '').slice(0, 7)).filter(Boolean).sort();
-    const sum = [['월', '건수', '비용', '입금액', '누적 건수', '누적 비용', '누적 입금액']]; let c = 0, cf = 0, cn = 0;
-    if(ms.length) monthsBetween(ms[0], ms[ms.length - 1]).forEach(m => {
-      const a = list.filter(x => x.st !== '취소' && (x.shoot || x.req || '').slice(0, 7) === m);
-      const f = a.reduce((t, x) => t + Number(x.fee || 0), 0), n = a.reduce((t, x) => t + instaNet(x), 0);
-      c += a.length; cf += f; cn += n; sum.push([m, a.length, f, n, c, cf, cn]);
-    });
-    X.utils.book_append_sheet(wb, xSheet(X, sum, [9, 6, 12, 12, 9, 12, 12]), '월별누적실적');
-    saveXlsx(X, wb, '김비서_인스타예약_' + stamp + '.xlsx');
-  } else {
-    const list = trades().sort((a, b) => String(a.d || '').localeCompare(String(b.d || '')) || (a.ord || a.created || 0) - (b.ord || b.created || 0));
-    const rows = [['구분', '납품요청일', '열1', '발주업체', '도착지', '주소', '품명', '수량', '단가', '공급가액', '담당자', '담당자 연락처', '파렛트', '계산서 발행', '입금', '비고']]
-      .concat(list.map(x => [x.dir === 'buy' ? '매입' : '매출', xDate(x.d), x.tag || '', x.co || '', x.dest || '', x.addr || '', x.item || '', Number(x.q || 0), Number(x.p || 0), tradeAmt(x),
-        x.mgr || '', x.tel || '', x.pal || '', x.inv ? 'O' : '', x.paid ? 'O' : '', x.note || '']));
-    X.utils.book_append_sheet(wb, xSheet(X, rows, [6, 11, 10, 12, 8, 20, 18, 8, 8, 12, 10, 14, 6, 8, 5, 30]), '캔 발주LIST');
-    const sum = [['월', '구분', '발주업체', '매입 수량', '매입 공급가액', '매출 수량', '매출 공급가액', '비고']];
-    const ms = [...new Set(list.map(x => (x.d || '').slice(0, 7)).filter(Boolean))].sort();
-    ms.forEach(m => {
-      const a = list.filter(x => (x.d || '').slice(0, 7) === m);
-      tradeAgg(a.filter(isWaste)).forEach(r => sum.push([m, '폐유', r.co, r.bq, r.ba, r.sq, r.sa, '부가세 별도']));
-      tradeAgg(a.filter(x => !isWaste(x))).forEach(r => sum.push([m, '식용유', r.co, r.bq, Math.round(r.ba / 1.1), r.sq, Math.round(r.sa / 1.1), '공급가=합계÷1.1']));
-    });
-    X.utils.book_append_sheet(wb, xSheet(X, sum, [9, 7, 14, 10, 14, 10, 14, 16]), '월별 업체별 집계');
-    saveXlsx(X, wb, '김비서_매입매출_' + stamp + '.xlsx');
-  }
-  toast('엑셀 파일을 받았어요');
 }
 
 // ---------- 편집 창 ----------
@@ -1586,12 +1301,11 @@ async function onAsk(fromVoice){
   PENDING = p; showPreview(fromVoice);
 }
 function dayAnswerText(s, withDate){
-  const d = parseYmd(s), {ev, mm} = itemsOnDate(s), dd = ddaysOnDate(s), ins = instaOnDate(s);
+  const d = parseYmd(s), {ev, mm} = itemsOnDate(s), dd = ddaysOnDate(s);
   const head = withDate ? (d.getMonth()+1) + '월 ' + d.getDate() + '일 ' + DOW[d.getDay()] + '요일' : '';
-  if(!ev.length && !mm.length && !dd.length && !ins.length) return withDate ? head + '은 비어 있어요.' : '';
+  if(!ev.length && !mm.length && !dd.length) return withDate ? head + '은 비어 있어요.' : '';
   const parts = [];
   dd.forEach(o => parts.push(o.label));
-  ins.forEach(o => parts.push('인스타 ' + o.label));
   ev.forEach(x => parts.push((x.time ? fmtTime(x.time) + ' ' : '') + x.title));
   mm.forEach(x => parts.push('메모 ' + x.text.split('\n')[0]));
   return (head ? head + ', ' : '') + parts.join(', ') + '.';
@@ -1628,17 +1342,12 @@ function splitMulti(text){
 }
 function won(a){ return Number(a || 0).toLocaleString('ko-KR') + '원'; }
 function pvSummary(p){
-  if(p.kind === 'insta') return p.co + ' · 촬영 ' + (p.date ? fmtDate(p.date) : '날짜 미정') + (p.time ? ' ' + fmtTime(p.time) : '') + ' · ' + won(p.fee);
   if(p.kind === 'gift') return p.nm + ' · ' + p.ev + ' · ' + won(p.a) + (p.dir === 'in' ? ' 받음' : ' 냄') + ' (' + fmtDate(p.date) + ')';
   if(p.kind === 'event') return fmtDate(p.date) + (p.time ? ' ' + fmtTime(p.time) : ' 종일') + ' · ' + p.title;
   if(p.kind === 'dday') return p.title + ' · ' + ddDateLabel({kind: p.ddKind || 'since', date: p.date, lunar: p.lunar, noYear: p.noYear}) + (p.ddKind === 'yearly' ? '' : ' · ' + DD_KIND[p.ddKind || 'since']);
   return p.text + (p.date ? ' (' + fmtDate(p.date) + ')' : '');
 }
 function speakSummary(p){
-  if(p.kind === 'insta'){
-    const d = p.date ? parseYmd(p.date) : null;
-    return p.co + ', ' + (d ? (d.getMonth()+1) + '월 ' + d.getDate() + '일 ' + (p.time ? fmtTime(p.time) + ' ' : '') + '촬영, ' : '') + (p.fee % 10000 === 0 ? (p.fee / 10000) + '만 원' : p.fee + '원') + ', 인스타 예약으로 넣을게요.';
-  }
   if(p.kind === 'event'){
     const d = parseYmd(p.date);
     return (d.getMonth()+1) + '월 ' + d.getDate() + '일 ' + DOW[d.getDay()] + '요일 ' + (p.time ? fmtTime(p.time) + ' ' : '') + p.title + ', 일정에 넣을게요.';
@@ -1668,7 +1377,7 @@ function showPreview(fromVoice){
     }
     return;
   }
-  const tag = {event:'<span class="tag ev">일정</span>', memo:'<span class="tag memo">메모</span>', dday:'<span class="tag dd">D-day</span>', gift:'<span class="tag dd">경조사</span>', insta:'<span class="tag in">인스타</span>'}[p.kind];
+  const tag = {event:'<span class="tag ev">일정</span>', memo:'<span class="tag memo">메모</span>', dday:'<span class="tag dd">D-day</span>', gift:'<span class="tag dd">경조사</span>'}[p.kind];
   let h = '<div class="sum">' + tag + esc(pvSummary(p)) + '</div>';
   if(p.notes && p.notes.length) h += '<div class="hint">' + esc(p.notes.join(' · ')) + '</div>';
   h += '<div class="row"><button class="btn pri" id="pvSave" onclick="confirmPending()">저장</button>'
@@ -1704,9 +1413,7 @@ function pendingEdit(forceKind){
   clearInterval(pvTimer);
   const p = PENDING; if(!p) return;
   cancelPending(true);
-  if(!forceKind && p.kind === 'insta'){
-    editInsta(null, {co: p.co, fee: p.fee, shoot: p.date || '', note: p.time ? fmtTime(p.time) : ''});
-  } else if(!forceKind && p.kind === 'gift'){
+  if(!forceKind && p.kind === 'gift'){
     editGift(null, {dir: p.dir, nm: p.nm, a: p.a, ev: p.ev, d: p.date});
   } else if(!forceKind && p.kind === 'dday'){
     editDday(null);
@@ -1735,10 +1442,7 @@ function confirmPending(){
     cancelPending(true);
     return;
   }
-  if(p.kind === 'insta'){
-    upsert({id: uid(), type:'insta', req: todayYmd(), shoot: p.date || null, up: null, st:'예정', co: p.co, fee: p.fee, tax: 0, net: null, paid: false, note: p.time ? fmtTime(p.time) : '', src:'ask'});
-    if(p.date){ selectDate(p.date); if(TAB !== 'cal') showTab('cal'); }
-  } else if(p.kind === 'gift'){
+  if(p.kind === 'gift'){
     upsert({id: uid(), type:'gift', dir: p.dir, nm: p.nm, a: p.a, ev: p.ev, d: p.date, rel:'', grp:'', memo:'', src:'ask'});
   } else if(p.kind === 'event'){
     upsert({id: uid(), type:'event', date: p.date, time: p.time || null, title: p.title, note: '', src: 'ask', repeat: p.repeat || null});
