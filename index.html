@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10.2-enter-save">
+<meta name="app-build-version" content="v10.3-ask-find">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10.2-enter-save';</script>
+<script>window.APP_BUILD = 'v10.3-ask-find';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -469,6 +469,9 @@ function ddayInfo(x){
 }
 
 // ---------- 말 → 일정/메모 해석 (1단계: 규칙 기반, 2단계에서 Claude로 보강) ----------
+// 묻는 말 끝(저장하지 않고 찾아서 답함) — '언제지·뭐였지·어디야·몇 시야·얼마였지·있었나·찾아줘' 등
+const Q_END_RE = /(찾아\s*(줘|봐|주세요)?|검색해?\s*(줘)?|있었나|있었지|있었어|있나요?|있지|있니|있냐|있던가|언제\s*(였|이었|이)?\s*(지|야|더라|니|냐|예요|에요|죠|였지|였더라)?|뭐\s*(였|이었|이)?\s*(지|야|더라|였지|였더라)|무엇이었지|어디\s*(였|이었|이)?\s*(지|야|더라|였지)|몇\s*(시|일|번|개|월|명)\S*|며칠\S*|얼마\S*|받았지|냈지|줬지|했었지|했나|했지|했더라)\s*[?？.]*\s*$/;
+const SAVE_WORD_RE = /(넣어|추가|등록|저장|잡아|기록|입력|적어|메모해|기억해)/;
 const WD = {'일':0,'월':1,'화':2,'수':3,'목':4,'금':5,'토':6};
 function parseCommand(raw){
   let t = ' ' + raw.trim().replace(/\s+/g, ' ') + ' ';
@@ -478,7 +481,7 @@ function parseCommand(raw){
   let intent = null;
 
   // 찾기 의도
-  if(/(찾아\s*(줘|봐|주세요)?|검색해?\s*(줘)?|있었나|있었지|언제였지|뭐였지|뭐더라|어디였지|얼마\s*(받았|냈|했|줬|보냈)[가-힣]*|받았지|냈지|했었지)\s*[?？.]?\s*$/.test(t.trim())){
+  if(Q_END_RE.test(t.trim()) || (/[?？]\s*$/.test(t) && !SAVE_WORD_RE.test(t))){
     intent = 'find';
   }
   // 메모 의도
@@ -542,7 +545,7 @@ function parseCommand(raw){
   let title = t
     .replace(/^\s*(메모|기억|적어)\s*(해|좀)?\s*(줘|둬|주세요)?\s*[:,]?\s+/,' ')
     .replace(/(을|를)?\s*(일정\s*(으로|에)?\s*)?(입력|추가|등록|저장|넣어|기록|잡아|메모|적어|기억)\s*(해|하)?\s*(줘|주세요|줄래|둬|놔|라)?\s*[.!?？]*\s*$/,' ')
-    .replace(/(찾아\s*(줘|봐|주세요)?|검색해?\s*(줘)?|있었나|있었지|언제였지|뭐였지|뭐더라|어디였지|얼마\s*(받았|냈|했|줬|보냈)[가-힣]*|받았지|냈지|했었지)\s*[?？.]?\s*$/,' ')
+    .replace(Q_END_RE,' ').replace(/[?？]+\s*$/,' ')
     .replace(/(^|\s)(일정|스케줄|스케쥴|메모)(\s|$)/g,' ')
     .replace(/^\s*(에|에는|은|는)\s+/,' ')
     .replace(/\s(에|에는)\s/g,' ')
@@ -1273,6 +1276,8 @@ async function onAsk(fromVoice){
   let p = null;
   const q0 = parseCommand(text);
   if(q0.kind === 'day' || q0.kind === 'week'){ answerDay(q0, fromVoice); inp.value = ''; return; }
+  const dq = ddQuestion(text);
+  if(dq){ answerDdq(dq, fromVoice); inp.value = ''; return; }
   const multi = splitMulti(text);
   if(multi){ PENDING = {kind:'multi', items: multi, raw: text}; showPreview(fromVoice); return; }
   if(SESSION && navigator.onLine){
@@ -1295,11 +1300,92 @@ async function onAsk(fromVoice){
       if(fromVoice) speak(gs);
       return;
     }
-    findQ = p.query; showTab('find');
-    runAiSearch(fromVoice);
+    findQ = p.query;
+    answerFind(p.query, text, fromVoice);
     return;
   }
   PENDING = p; showPreview(fromVoice);
+}
+// D-day 계산 질문: "기주 50일이 언제지", "기주 백일 언제야", "사귄 날 2주년 언제", "기주 돌 언제야", "기주 며칠째야"
+function ddQuestion(raw){
+  const t = raw.trim().replace(/^김비서(야|님|씨)?\s*[,.!]?\s*/, '').replace(/[?？.!]+\s*$/, '');
+  let m, q = null;
+  if(m = t.match(/^(.+?)\s*(\d+|백|천)\s*일\s*(째)?\s*(이|은|는|가|되는\s*날(이|은)?)?\s*(언제|몇\s*월|며칠)/)) q = {name: m[1], n: m[2] === '백' ? 100 : m[2] === '천' ? 1000 : +m[2]};
+  else if(m = t.match(/^(.+?)\s*(\d+)\s*주년\s*(이|은|는)?\s*(언제|몇\s*월|며칠)/)) q = {name: m[1], years: +m[2]};
+  else if(m = t.match(/^(.+?)\s*(첫\s*)?돌(잔치)?\s*(이|은)?\s*(언제|몇\s*월|며칠)/)) q = {name: m[1], years: 1};
+  else if(m = t.match(/^(.+?)\s*(며칠|몇\s*일)\s*(째|됐|되었|지났)/)) q = {name: m[1], today: true};
+  if(!q) return null;
+  q.name = q.name.replace(/\s+지$/, '').replace(/(이|가|은|는|의)$/, '').trim(); // '사귄 지' → '사귄'
+  const x = ddFind(q.name); if(!x) return null;
+  return Object.assign(q, {kind:'ddq', x});
+}
+function ddFind(name){
+  const k = normalizeKo(name).replace(/(생일|생신|기념일)$/, ''); if(k.length < 1) return null;
+  const ok = x => x.kind !== 'until' && !(x.kind === 'yearly' && x.noYear);
+  const list = ddays().filter(x => ok(x) && (normalizeKo(x.title).includes(k) || (k.length >= 2 && k.includes(normalizeKo(x.title).replace(/(생일|생신)$/, '')))));
+  return list.sort((a, b) => (a.kind === 'since' ? 0 : 1) - (b.kind === 'since' ? 0 : 1) || a.title.length - b.title.length)[0] || null;
+}
+function ddBase(x){ // 그날부터 세는 시작일(양력)
+  const b = ymdParts(x.date);
+  return x.lunar ? lunarToSolar(b.y, b.m, b.d) : new Date(b.y, b.m - 1, b.d);
+}
+function longDate(d){ return d.getFullYear() + '년 ' + (d.getMonth()+1) + '월 ' + d.getDate() + '일 ' + DOW[d.getDay()] + '요일'; }
+function answerDdq(q, fromVoice){
+  const base = ddBase(q.x), today = parseYmd(todayYmd()); let msg, target = null;
+  if(!base){ msg = q.x.title + '의 시작일을 계산하지 못했어요.'; }
+  else if(q.today){
+    const n = dayDiff(base, today) + 1;
+    msg = q.x.title + ' — 오늘이 ' + n.toLocaleString('ko-KR') + '일째예요. (' + longDate(base) + '부터, 첫날 1일)';
+    target = ymd(today);
+  } else {
+    let d;
+    if(q.n) d = addDays(base, q.n - 1);
+    else {
+      const b = ymdParts(q.x.date);
+      d = q.x.lunar ? lunarToSolar(b.y + q.years, b.m, b.d) : new Date(base.getFullYear() + q.years, base.getMonth(), base.getDate());
+    }
+    const left = dayDiff(today, d);
+    msg = q.x.title + ' ' + (q.n ? q.n.toLocaleString('ko-KR') + '일' : q.years === 1 && /생일|생신/.test(q.x.title) ? '첫 돌' : q.years + '주년') + '은 ' + longDate(d)
+      + (left > 0 ? ', ' + left + '일 남았어요.' : left === 0 ? ', 바로 오늘이에요.' : ', ' + (-left) + '일 지났어요.')
+      + (q.n ? ' (' + longDate(base) + '을 1일로 계산)' : '');
+    target = ymd(d);
+  }
+  if(target){ selectDate(target); if(TAB !== 'cal') showTab('cal'); }
+  document.getElementById('pvBox').innerHTML = '<div class="sum"><span class="tag dd">D-day</span>' + esc(msg) + '</div><div class="row"><button class="btn sec" onclick="cancelPending()">닫기</button></div>';
+  document.getElementById('preview').classList.add('show');
+  if(fromVoice) speak(msg.replace(/\(.*?\)/g, ''));
+}
+// 찾기 질문에 바로 답: 종류(일정·메모·D-day…)를 몰라도 전부에서 찾아 종류와 날짜를 붙여 보여 줌
+function itemBrief(x){
+  if(x.type === 'event') return {tag:'<span class="tag ev">일정</span>', say:'일정, ' + fmtDate(x.date).replace(/ \((.)\)/, ' $1요일') + (x.time ? ' ' + fmtTime(x.time) : '') + ', ' + x.title, line: fmtDate(x.date, true) + (x.time ? ' ' + fmtTime(x.time) : '') + ' · ' + x.title};
+  if(x.type === 'memo') return {tag:'<span class="tag memo">메모</span>', say:'메모, ' + x.text.split('\n')[0], line: (x.date ? fmtDate(x.date, true) + ' · ' : '') + x.text.split('\n')[0]};
+  if(x.type === 'dday'){ const i = ddayInfo(x); return {tag:'<span class="tag dd">D-day</span>', say: x.title + ', ' + ddDateLabel(x) + (i && i.big ? ', ' + i.big : ''), line: x.title + ' · ' + ddDateLabel(x) + (i && i.big ? ' · ' + i.big : '')}; }
+  if(x.type === 'gift') return {tag:'<span class="tag dd">경조사</span>', say:'경조사, ' + x.nm + ' ' + (x.ev || '') + ' ' + won(x.a), line: x.nm + ' · ' + (x.ev || '') + ' · ' + won(x.a) + (x.dir === 'in' ? ' 받음' : ' 냄') + (x.d ? ' · ' + fmtDate(x.d, true) : '')};
+  if(x.type === 'ref') return {tag:'<span class="tag ev">회사 규정</span>', say:'회사 규정, ' + x.title + ', ' + String(x.body || '').split('\n')[0], line: x.title + ' · ' + String(x.body || '').split('\n')[0]};
+  return {tag:'<span class="tag memo">바로가기</span>', say:'바로가기, ' + x.title, line: x.title};
+}
+function answerFind(q, raw, fromVoice){
+  const res = searchItems(q).filter(o => o.x.type !== 'cfg');
+  const top = res.length ? res.filter(o => o.score >= res[0].score - 1).slice(0, 3) : [];
+  let h = '';
+  if(!top.length) h += '<div class="sum">"' + esc(q) + '" — 찾지 못했어요.</div>';
+  else top.forEach(o => { const b = itemBrief(o.x); h += '<div class="sum" style="cursor:pointer" onclick="cancelPending(true);openItem(\'' + o.x.id + '\')">' + b.tag + esc(b.line) + '</div>'; });
+  if(res.length > top.length) h += '<div class="hint">비슷한 기록 ' + (res.length - top.length) + '건 더</div>';
+  h += '<div class="row"><button class="btn sec" onclick="cancelPending(true);findQ=' + esc(JSON.stringify(q)).replace(/"/g, '&quot;') + ';showTab(\'find\')">찾기 화면에서 보기</button>'
+    + '<button class="btn sec" onclick="PENDING={kind:\'memo\',text:' + esc(JSON.stringify(raw)).replace(/"/g, '&quot;') + ',date:null,notes:[]};showPreview(false)">질문 아님 — 메모로</button>'
+    + '<button class="btn sec" onclick="cancelPending(true)">닫기</button></div>';
+  document.getElementById('pvBox').innerHTML = h;
+  document.getElementById('preview').classList.add('show');
+  if(fromVoice) speak(top.length ? itemBrief(top[0].x).say + (res.length > 1 ? '. 비슷한 기록이 ' + (res.length - 1) + '건 더 있어요.' : '.') : q + ', 찾지 못했어요.');
+}
+function openItem(id){
+  const x = live().find(i => i.id === id); if(!x) return;
+  if(x.type === 'event'){ selectDate(x.date); if(TAB !== 'cal') showTab('cal'); editEvent(id); }
+  else if(x.type === 'memo') editMemo(id);
+  else if(x.type === 'dday') editDday(id);
+  else if(x.type === 'gift') editGift(id);
+  else if(x.type === 'ref') openRef(id);
+  else if(x.type === 'link') window.open(x.url, '_blank', 'noopener');
 }
 function dayAnswerText(s, withDate){
   const d = parseYmd(s), {ev, mm} = itemsOnDate(s), dd = ddaysOnDate(s);
