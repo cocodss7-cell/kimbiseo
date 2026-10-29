@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10.4.1-nael">
+<meta name="app-build-version" content="v10.4.2-today">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10.4.1-nael';</script>
+<script>window.APP_BUILD = 'v10.4.2-today';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -571,7 +571,8 @@ function parseCommand(raw){
   const askQ = !/(넣어|추가|등록|저장|잡아|기록|입력|적어|기억해)/.test(raw)
     && (/(무슨|뭔|어떤)\s*(일정|일|약속|거|게)|일정\s*(뭐|있|알려|말해|읽어|확인)|뭐\s*(있|해야)/.test(raw)
         || /(있어|있지|있나|있니|있냐|있었어|있었지|있었나|있던가|뭐야|뭐지|알려\s*(줘|줄래|주세요)|말해\s*(줘|줄래)|읽어\s*(줘|줄래))\s*[?？.]*\s*$/.test(raw.trim()));
-  if(askQ && date) return {kind:'day', date: ymd(date)};
+  const onlyAsk = !SAVE_WORD_RE.test(raw) && /^(일정|스케[줄쥴]|약속|할\s*일)?\s*(은|는|이|좀)?$/.test(title) && /(일정|스케[줄쥴]|약속|할\s*일)/.test(raw); // "오늘 일정"·"오늘 일정은?"
+  if((askQ || onlyAsk) && date) return {kind:'day', date: ymd(date)};
   const wk = raw.match(/(이번|다음|담|다다음)\s*주/);
   if(askQ && !date && wk){
     const mon = addDays(today, -((today.getDay() + 6) % 7));
