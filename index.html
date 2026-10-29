@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10.4.2-today">
+<meta name="app-build-version" content="v10.5-keep-draft">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10.4.2-today';</script>
+<script>window.APP_BUILD = 'v10.5-keep-draft';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -283,7 +283,7 @@ body.mini{padding-bottom:96px}
 <!-- 입력바 -->
 <div class="ask">
   <form class="ask-in" onsubmit="event.preventDefault();askSubmit();">
-    <input id="askInput" autocomplete="off" placeholder="10월 16일 18시 면접 넣어줘">
+    <input id="askInput" autocomplete="off" placeholder="10월 16일 18시 면접 넣어줘" oninput="saveAskDraft()">
     <button type="button" class="mic" id="micBtn" onclick="toggleMic()" aria-label="음성 입력"><svg class="ico" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
     <button type="submit" class="send">입력</button>
   </form>
@@ -1042,6 +1042,7 @@ function giftSummary(q){
   return p.nm + ', ' + one('out', p.outSum, '낸') + ', ' + one('in', p.inSum, '받은') + '.';
 }
 function editGift(id, preset){
+  MODAL_CTX = ['editGift', id || null, null];
   const x = id ? DB.items.find(i => i.id === id) : Object.assign({type:'gift', dir:'out', nm:'', a:'', ev:'결혼식', d: todayYmd(), rel:'', grp:'', memo:''}, preset || {});
   if(!x) return;
   const evs = ['결혼식','장례식','돌잔치','생일','기타'];
@@ -1109,11 +1110,37 @@ function saveLink(id){
 }
 
 // ---------- 편집 창 ----------
-function openModal(html){ document.getElementById('sheet').innerHTML = html; document.getElementById('modal').classList.add('show'); }
-function closeModal(){ document.getElementById('modal').classList.remove('show'); }
+function openModal(html){ const sh = document.getElementById('sheet'); sh.innerHTML = html; sh.oninput = sh.onchange = saveModalDraft; document.getElementById('modal').classList.add('show'); }
+function closeModal(){ document.getElementById('modal').classList.remove('show'); clearModalDraft(); }
+// ---------- 쓰던 내용 지키기: 화면이 꺼졌다 켜지거나 폰이 앱을 다시 띄워도 입력칸·편집 창 내용 복원 ----------
+let MODAL_CTX = null;
+function lsSet(k, v){ try{ v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k) || 'null'); }catch(e){ return null; } }
+function saveAskDraft(){ if(recOn) return; const v = document.getElementById('askInput').value; lsSet('kbs_ask_draft', v.trim() ? {v, at: Date.now()} : null); }
+function saveModalDraft(){
+  if(!MODAL_CTX) return;
+  const vals = {};
+  document.querySelectorAll('#sheet input[id], #sheet textarea[id], #sheet select[id]').forEach(el => { vals[el.id] = el.type === 'checkbox' ? el.checked : el.value; });
+  lsSet('kbs_modal_draft', {ctx: MODAL_CTX, vals, at: Date.now()});
+}
+function clearModalDraft(){ MODAL_CTX = null; lsSet('kbs_modal_draft', null); }
+function restoreDrafts(){
+  const a = lsGet('kbs_ask_draft'), inp = document.getElementById('askInput');
+  if(a && a.v && Date.now() - a.at < 864e5 && !inp.value.trim()) inp.value = a.v;
+  const m = lsGet('kbs_modal_draft');
+  if(!m || !m.ctx || Date.now() - m.at > 864e5){ lsSet('kbs_modal_draft', null); return; }
+  const [fn, id, arg] = m.ctx;
+  if(id && !live().find(x => x.id === id)){ lsSet('kbs_modal_draft', null); return; }
+  const f = {editEvent, editMemo, editDday, editGift}[fn]; if(!f) return;
+  f(id, arg);
+  Object.entries(m.vals || {}).forEach(([k, v]) => { const el = document.getElementById(k); if(!el) return; if(el.type === 'checkbox') el.checked = !!v; else el.value = v; });
+  saveModalDraft();
+  toast('쓰던 내용을 되살렸어요');
+}
 function val(id){ const el = document.getElementById(id); return el ? el.value.trim() : ''; }
 
 function editEvent(id, date){
+  MODAL_CTX = ['editEvent', id || null, date || null];
   const x = id ? DB.items.find(i => i.id === id) : {type:'event', date: date || selDate, time:'', title:'', note:''};
   if(!x) return;
   openModal('<h2>' + (id ? '일정 수정' : '새 일정') + '</h2>'
@@ -1135,6 +1162,7 @@ function saveEvent(id){
   upsert(x); closeModal(); toast('저장했어요');
 }
 function editMemo(id, date){
+  MODAL_CTX = ['editMemo', id || null, date || null];
   const x = id ? DB.items.find(i => i.id === id) : {type:'memo', text:'', date: date || null, done:false};
   if(!x) return;
   openModal('<h2>' + (id ? '메모 수정' : '새 메모') + '</h2>'
@@ -1153,6 +1181,7 @@ function saveMemo(id){
   upsert(x); closeModal(); toast('저장했어요');
 }
 function editDday(id){
+  MODAL_CTX = ['editDday', id || null, null];
   const x = id ? DB.items.find(i => i.id === id) : {type:'dday', title:'', date: todayYmd(), kind:'since'};
   if(!x) return;
   const sel = x.kind === 'yearly' ? (x.lunar ? 'yearly_lunar' : 'yearly') : (x.kind || 'since');
@@ -1292,9 +1321,9 @@ async function onAsk(fromVoice){
   clearInterval(pvTimer);
   let p = null;
   const q0 = parseCommand(text);
-  if(q0.kind === 'day' || q0.kind === 'week'){ answerDay(q0, fromVoice); inp.value = ''; return; }
+  if(q0.kind === 'day' || q0.kind === 'week'){ answerDay(q0, fromVoice); inp.value = ''; saveAskDraft(); return; }
   const dq = ddQuestion(text);
-  if(dq){ answerDdq(dq, fromVoice); inp.value = ''; return; }
+  if(dq){ answerDdq(dq, fromVoice); inp.value = ''; saveAskDraft(); return; }
   const multi = splitMulti(text);
   if(multi){ PENDING = {kind:'multi', items: multi, raw: text}; showPreview(fromVoice); return; }
   if(SESSION && navigator.onLine){
@@ -1306,7 +1335,7 @@ async function onAsk(fromVoice){
   if(!p) p = parseCommand(text);
   if(p.kind === 'find'){
     document.getElementById('preview').classList.remove('show');
-    inp.value = '';
+    inp.value = ''; saveAskDraft();
     const gs = giftSummary(p.query);
     if(gs){
       // 경조사 질문은 어느 화면에서 물어도 서랍 › 경조사 장부의 그 사람을 펼쳐서 보여 줌
@@ -1573,11 +1602,12 @@ function cancelPending(silent){
   PENDING = null;
   document.getElementById('preview').classList.remove('show');
   document.getElementById('askInput').value = '';
+  lsSet('kbs_ask_draft', null);
   if(!silent){ try{ speechSynthesis.cancel(); }catch(e){} toast('취소했어요'); }
 }
 
 // ---------- 음성 (Chrome 음성인식 · 읽어 주기) ----------
-let REC = null, recOn = false;
+let REC = null, recOn = false, recBase = '';
 function speak(text){
   try{
     speechSynthesis.cancel();
@@ -1598,7 +1628,8 @@ function toggleMic(){
   if(!SR){ toast('이 브라우저는 음성 입력을 지원하지 않아요 — 키보드 마이크(Wispr Flow)를 써 주세요'); document.getElementById('askInput').focus(); return; }
   recWanted = true; recOn = true; recText = ''; recSession = ''; recStartAt = Date.now(); recLastAt = 0;
   const inp = document.getElementById('askInput');
-  inp.value = ''; inp.placeholder = '듣고 있어요… 말씀하세요';
+  recBase = inp.value.trim(); // 써 둔 글자는 지우지 않고 그 뒤에 이어 받아씀
+  inp.placeholder = '듣고 있어요… 말씀하세요';
   document.getElementById('micBtn').classList.add('on');
   clearTimeout(recMaxT); recMaxT = setTimeout(endListening, REC_MAX_MS);
   spawnRec();
@@ -1614,7 +1645,7 @@ function spawnRec(){
     const r = e.results[e.results.length - 1];
     const cur = String(r[0].transcript || '').trim();
     if(r.isFinal) recSession = cur;
-    inp.value = joinSpeech(recText, cur);
+    inp.value = (recBase ? recBase + ' ' : '') + joinSpeech(recText, cur);
     recLastAt = Date.now();
     clearTimeout(recSilenceT);
     recSilenceT = setTimeout(() => { if(recWanted){ recWanted = false; try{ REC.stop(); }catch(_){ finishListening(); } } }, REC_SILENCE_MS);
@@ -1656,7 +1687,7 @@ function cancelListening(){
   try{ REC && REC.abort(); }catch(e){}
   document.getElementById('micBtn').classList.remove('on');
   document.getElementById('voiceGate').classList.add('hidden');
-  const inp = document.getElementById('askInput'); inp.value = '';
+  const inp = document.getElementById('askInput'); inp.value = recBase; // 듣기 전 글자로 되돌림
   applyVoiceMode();
   toast('듣기를 껐어요');
 }
@@ -1671,9 +1702,8 @@ function finishListening(){
   document.getElementById('micBtn').classList.remove('on');
   const inp = document.getElementById('askInput');
   applyVoiceMode();
-  if(recText) inp.value = recText;
-  if(inp.value.trim()) onAsk(true);
-  else if(Date.now() - recStartAt > 1500) toast('말씀이 안 들렸어요');
+  if(recText){ inp.value = (recBase ? recBase + ' ' : '') + recText; onAsk(true); }
+  else { inp.value = recBase; if(Date.now() - recStartAt > 1500) toast('말씀이 안 들렸어요'); } // 말이 없으면 써 둔 글자 그대로(자동 저장 안 함)
 }
 
 // ---------- Wispr Flow 모드 ----------
@@ -1969,11 +1999,13 @@ function autoVoiceOn(){ try{ return localStorage.getItem('kbs_auto_voice') === '
 function setAutoVoice(on){ try{ localStorage.setItem('kbs_auto_voice', on ? '1' : '0'); }catch(e){} toast(on ? '앱을 열면 바로 들을게요' : '바로 듣기를 껐어요'); }
 function startVoiceGate(){
   if(recOn || document.getElementById('modal').classList.contains('show')) return;
+  if(document.getElementById('askInput').value.trim() || document.getElementById('preview').classList.contains('show')) return; // 쓰던 중이면 듣기 안 켬
   // Wispr 모드: 큰 마이크 화면 없이 바로 입력칸 선택 — 입력칸이 잡히면 Wispr 떠 있는 버튼이 바로 떠서 한 번에 말할 수 있음(폰에 따라 키보드는 안 뜰 수 있음)
   if(voiceMode() === 'wispr'){ setTimeout(focusAskForWispr, 300); return; }
   document.getElementById('voiceGate').classList.remove('hidden');
   setTimeout(() => { try{ if(!recOn) toggleMic(); }catch(e){} }, 400);
 }
+try{ restoreDrafts(); }catch(e){} // 쓰던 내용 먼저 되살리고(있으면 자동 듣기 안 켬)
 if(/[?&]voice=1/.test(location.search) || autoVoiceOn()){
   startVoiceGate();
   if(/[?&]voice=1/.test(location.search)){ try{ history.replaceState(null, '', location.pathname); }catch(e){} }
