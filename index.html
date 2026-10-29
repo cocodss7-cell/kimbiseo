@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10.3-ask-find">
+<meta name="app-build-version" content="v10.4-parse-more">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10.3-ask-find';</script>
+<script>window.APP_BUILD = 'v10.4-parse-more';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -512,7 +512,7 @@ function parseCommand(raw){
   } else if(m = take(/(내일\s*모레|글피|모레|내일|오늘)/)){
     const k = m[1].replace(/\s/g,'');
     date = addDays(today, {'오늘':0,'내일':1,'모레':2,'내일모레':2,'글피':3}[k]);
-  } else if(m = take(/(이번\s*주|다음\s*주|담\s*주|다다음\s*주)?\s*([월화수목금토일])\s*요일/)){
+  } else if((m = take(/(이번\s*주|다음\s*주|담\s*주|다다음\s*주)?\s*([월화수목금토일])\s*(?:요일|욜)/)) || (m = take(/(이번\s*주|다음\s*주|담\s*주|다다음\s*주)\s*([월화수목금토일])(?=\s|$|에)/))){
     const target = WD[m[2]];
     const w = (m[1] || '').replace(/\s/g,'');
     if(w){
@@ -529,8 +529,24 @@ function parseCommand(raw){
     if(date < today){ date = new Date(today.getFullYear(), today.getMonth()+1, +m[1]); notes.push('다음 달로 이해'); }
   }
 
-  // 시간: 18:30 / 오후 3시 반 / 저녁 7시 20분 / 정오
-  if(m = take(/(\d{1,2}):(\d{2})/)){
+  // 시간: 18:30 / 오후 3시 반 / 저녁 7시 20분 / 정오 / 15 30 / 15 15분 / 10시부터 11시(끝 시각은 메모에)
+  const hourOf = (h, ap, note) => {
+    if(/오후|저녁|밤|점심|낮/.test(ap || '') && h < 12) h += 12;
+    if(!ap && h >= 1 && h <= 7){ h += 12; if(note) notes.push('오후로 이해'); }
+    return h % 24;
+  };
+  let end = null;
+  const T1 = '(오전|오후|아침|점심|저녁|밤|낮|새벽)?\\s*(\\d{1,2})(?:\\s*시\\s*(반|(\\d{1,2})\\s*분)?|:(\\d{2}))';
+  const rg = new RegExp(T1 + '?\\s*(?:부터|에서|~|-)\\s*' + T1 + '\\s*(?:까지)?');
+  if(m = take(rg)){
+    const mi1 = m[3] === '반' ? 30 : +(m[4] || m[5] || 0), mi2 = m[8] === '반' ? 30 : +(m[9] || m[10] || 0);
+    const h1 = hourOf(+m[2], m[1], true);
+    let h2 = hourOf(+m[7], m[6] || m[1], false);
+    if(h2 * 60 + mi2 <= h1 * 60 + mi1 && h2 < 12) h2 += 12;
+    time = pad(h1) + ':' + pad(mi1); end = pad(h2 % 24) + ':' + pad(mi2);
+  } else if(date && (m = take(/(?:^|\s)(오전|오후|저녁|밤)?\s*([01]?\d|2[0-3])\s+([0-5]?\d)\s*분/) || take(/(?:^|\s)(오전|오후|저녁|밤)?\s*([01]?\d|2[0-3])\s+([0-5]\d)(?=\s|$)/))){ // 날짜가 있을 때만(수량 숫자와 헷갈림 방지)
+    time = pad(hourOf(+m[2], m[1], true)) + ':' + pad(+m[3]);
+  } else if(m = take(/(\d{1,2}):(\d{2})/)){
     time = pad(+m[1]) + ':' + m[2];
   } else if(m = take(/(오전|오후|아침|점심|저녁|밤|낮|새벽)?\s*(\d{1,2})\s*시(?!간)\s*(반|(\d{1,2})\s*분)?/)){
     let h = +m[2]; const mi = m[3] === '반' ? 30 : (m[4] ? +m[4] : 0);
@@ -592,7 +608,7 @@ function parseCommand(raw){
   }
   if(date && intent !== 'memo'){
     if(repeatMonthly) notes.push('매월 반복');
-    return {kind:'event', date: ymd(date), time, title, notes, repeat: repeatMonthly ? 'monthly' : null};
+    return {kind:'event', date: ymd(date), time, end, title, notes, repeat: repeatMonthly ? 'monthly' : null};
   }
   return {kind:'memo', text: title, date: date ? ymd(date) : null, notes};
 }
@@ -1430,7 +1446,7 @@ function splitMulti(text){
 function won(a){ return Number(a || 0).toLocaleString('ko-KR') + '원'; }
 function pvSummary(p){
   if(p.kind === 'gift') return p.nm + ' · ' + p.ev + ' · ' + won(p.a) + (p.dir === 'in' ? ' 받음' : ' 냄') + ' (' + fmtDate(p.date) + ')';
-  if(p.kind === 'event') return fmtDate(p.date) + (p.time ? ' ' + fmtTime(p.time) : ' 종일') + ' · ' + p.title;
+  if(p.kind === 'event') return fmtDate(p.date) + (p.time ? ' ' + fmtTime(p.time) + (p.end ? '~' + fmtTime(p.end) : '') : ' 종일') + ' · ' + p.title;
   if(p.kind === 'dday') return p.title + ' · ' + ddDateLabel({kind: p.ddKind || 'since', date: p.date, lunar: p.lunar, noYear: p.noYear}) + (p.ddKind === 'yearly' ? '' : ' · ' + DD_KIND[p.ddKind || 'since']);
   return p.text + (p.date ? ' (' + fmtDate(p.date) + ')' : '');
 }
@@ -1523,7 +1539,7 @@ function confirmPending(){
   clearInterval(pvTimer);
   const p = PENDING; if(!p) return;
   if(p.kind === 'multi'){
-    p.items.forEach(x => upsert({id: uid(), type:'event', date: x.date, time: x.time || null, title: x.title, note: '', src: 'ask', repeat: x.repeat || null}));
+    p.items.forEach(x => upsert({id: uid(), type:'event', date: x.date, time: x.time || null, title: x.title, note: x.end ? '~' + fmtTime(x.end) + '까지' : '', src: 'ask', repeat: x.repeat || null}));
     selectDate(p.items[0].date); if(TAB !== 'cal') showTab('cal');
     toast(p.items.length + '건 저장했어요 · ' + p.items.map(x => fmtDate(x.date).replace(/ \(.\)/, '') + ' ' + x.title).join(', '));
     cancelPending(true);
@@ -1532,7 +1548,7 @@ function confirmPending(){
   if(p.kind === 'gift'){
     upsert({id: uid(), type:'gift', dir: p.dir, nm: p.nm, a: p.a, ev: p.ev, d: p.date, rel:'', grp:'', memo:'', src:'ask'});
   } else if(p.kind === 'event'){
-    upsert({id: uid(), type:'event', date: p.date, time: p.time || null, title: p.title, note: '', src: 'ask', repeat: p.repeat || null});
+    upsert({id: uid(), type:'event', date: p.date, time: p.time || null, title: p.title, note: p.end ? '~' + fmtTime(p.end) + '까지' : '', src: 'ask', repeat: p.repeat || null});
     selectDate(p.date);
     if(TAB !== 'cal') showTab('cal');
   } else if(p.kind === 'dday'){
