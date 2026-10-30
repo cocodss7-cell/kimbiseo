@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10.5-keep-draft">
+<meta name="app-build-version" content="v10.6-event-first">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10.5-keep-draft';</script>
+<script>window.APP_BUILD = 'v10.6-event-first';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -607,7 +607,9 @@ function parseCommand(raw){
     if(sd && !raw3.hasYear && dayDiff(sd, today) > 60) sd = lunarToSolar(raw3.y + 1, raw3.m, raw3.d);
     if(sd){ date = sd; notes.push('음력 ' + raw3.m + '월 ' + raw3.d + '일 → 양력 ' + (sd.getMonth()+1) + '월 ' + sd.getDate() + '일'); }
   }
-  if(date && intent !== 'memo'){
+  // 기본은 일정(운영자 결정 10-30) — '메모해줘·메모·기억해·적어둬'라고 할 때만 메모. 날짜가 없으면 오늘 일정으로
+  if(intent !== 'memo'){
+    if(!date){ date = today; notes.push('날짜가 없어 오늘로 — 메모면 [메모로]'); }
     if(repeatMonthly) notes.push('매월 반복');
     return {kind:'event', date: ymd(date), time, end, title, notes, repeat: repeatMonthly ? 'monthly' : null};
   }
