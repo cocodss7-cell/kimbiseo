@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10.8-leave">
+<meta name="app-build-version" content="v10.9-multi-words">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10.8-leave';</script>
+<script>window.APP_BUILD = 'v10.9-multi-words';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -1529,7 +1529,8 @@ function answerDay(q, fromVoice){
   if(fromVoice) speak(msg);
 }
 // 한 문장에 날짜가 여럿: "10/22 탈검유 10/26 CJ Audit" → 날짜마다 따로 일정
-const MULTI_DATE_RE = /\d{4}\s*[.\-\/년]\s*\d{1,2}\s*[.\-\/월]\s*\d{1,2}\s*일?|\d{1,2}\s*월\s*\d{1,2}\s*일|(?<![\d\/.])\d{1,2}\/\d{1,2}(?![\d\/])/g;
+// 날짜 낱말: 숫자 날짜 + '이번 주 목요일'·'토요일'·'금욜'·'오늘·내일·낼·모레·글피'(v10.9)
+const MULTI_DATE_RE = /\d{4}\s*[.\-\/년]\s*\d{1,2}\s*[.\-\/월]\s*\d{1,2}\s*일?|\d{1,2}\s*월\s*\d{1,2}\s*일|(?<![\d\/.])\d{1,2}\/\d{1,2}(?![\d\/])|(?:이번|다음|담|다다음)\s*주\s*[월화수목금토일](?:\s*(?:요일|욜))?(?=\s|$|에)|(?<![가-힣])[월화수목금토일]\s*(?:요일|욜)|(?<![가-힣])(?:내일\s*모레|낼\s*모레|오늘|내일|낼|모레|글피)(?![가-힣])/g;
 function splitMulti(text){
   const t = text.trim().replace(/^김비서(야|님|씨)?\s*[,.!]?\s*/, '');
   const ms = [...t.matchAll(MULTI_DATE_RE)];
@@ -1539,6 +1540,7 @@ function splitMulti(text){
     let seg = t.slice(ms[i].index, i + 1 < ms.length ? ms[i+1].index : t.length)
       .replace(/[\s,·;]+(그리고|이랑|랑|하고|또)?[\s,·;]*$/, '').trim();
     seg = seg.replace(/(\d{1,2})\/(\d{1,2})/, '$1/$2 '); // "10/22탈검유"도 읽히게
+    if(!seg.slice(ms[i][0].length).replace(/[\s,·;]+/g, '').length) return null; // 날짜 낱말만 있고 내용이 없으면("내일 오늘 얘기한…") 나누지 않음
     const p = parseCommand(seg);
     if(p.kind !== 'event' || !p.title) return null; // 하나라도 일정이 아니면 나누지 않음
     out.push(p);
