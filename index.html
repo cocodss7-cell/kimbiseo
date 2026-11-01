@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10.7-cal-swipe">
+<meta name="app-build-version" content="v10.8-leave">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10.7-cal-swipe';</script>
+<script>window.APP_BUILD = 'v10.8-leave';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -20,20 +20,21 @@
   --ev-bg:#E6F4EA; --ev-tx:#1D5B33; --ev-dot:#34A853;
   --mm-bg:#FFF5D1; --mm-tx:#755800; --mm-dot:#F2B600;
   --dd-bg:#FFE9DA; --dd-tx:#9A4300; --dd-dot:#F57F17;
+  --lv-bg:#E3EEFF; --lv-tx:#1E4FA0; --lv-dot:#3B7BF6;
   --shadow:0 1px 2px rgba(16,24,20,.04),0 4px 16px rgba(16,24,20,.05);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#0E1311; --card:#171D1A; --cell:#1D2421; --text:#E9EEEB; --sub:#97A39D; --line:#2A3330;
     --sun:#FF7B7F; --sat:#7AA5FF; --accent:#FFD166;
-    --ev-bg:#1E3527; --ev-tx:#A8DDB5; --mm-bg:#3A3215; --mm-tx:#F3D77A; --dd-bg:#3E2814; --dd-tx:#FFC08F;
+    --ev-bg:#1E3527; --ev-tx:#A8DDB5; --mm-bg:#3A3215; --mm-tx:#F3D77A; --dd-bg:#3E2814; --dd-tx:#FFC08F; --lv-bg:#1B2B45; --lv-tx:#A9C6FF; --lv-dot:#6E9CFF;
     --shadow:none;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0E1311; --card:#171D1A; --cell:#1D2421; --text:#E9EEEB; --sub:#97A39D; --line:#2A3330;
   --sun:#FF7B7F; --sat:#7AA5FF; --accent:#FFD166;
-  --ev-bg:#1E3527; --ev-tx:#A8DDB5; --mm-bg:#3A3215; --mm-tx:#F3D77A; --dd-bg:#3E2814; --dd-tx:#FFC08F;
+  --ev-bg:#1E3527; --ev-tx:#A8DDB5; --mm-bg:#3A3215; --mm-tx:#F3D77A; --dd-bg:#3E2814; --dd-tx:#FFC08F; --lv-bg:#1B2B45; --lv-tx:#A9C6FF; --lv-dot:#6E9CFF;
   --shadow:none;
 }
 *{box-sizing:border-box}
@@ -113,6 +114,7 @@ textarea{resize:vertical;min-height:90px;line-height:1.5}
 .pill.ev{background:var(--ev-bg);color:var(--ev-tx)}
 .pill.memo{background:var(--mm-bg);color:var(--mm-tx)}
 .pill.dd{background:var(--dd-bg);color:var(--dd-tx)}
+.pill.lv{background:var(--lv-bg);color:var(--lv-tx)} .dot.lv{background:var(--lv-dot)} .tag.lv{background:var(--lv-bg);color:var(--lv-tx)}
 .cell .more{font-size:11px;color:var(--sub);margin-top:3px;padding-left:2px}
 @media (max-width:640px){
   .cal{gap:3px}
@@ -247,6 +249,9 @@ body.mini{padding-bottom:96px}
 .gperson .gbody{padding:0 14px 10px}
 .gline{display:flex;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:14px;cursor:pointer}
 .gline .m{flex:1;color:var(--sub);font-size:13px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--sub);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer}
+.chip.on{background:var(--text);border-color:var(--text);color:var(--card)}
 .refcard{background:var(--cell);border-radius:12px;padding:12px 14px;margin-bottom:8px}
 .refcard h4{margin:0 0 6px;font-size:15px} .refcard .rb{white-space:pre-wrap;line-height:1.55;font-size:14px}
 .linkbtn{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--cell);border-radius:12px;padding:14px;margin-bottom:8px;text-decoration:none;color:var(--text);font-weight:700}
@@ -476,6 +481,8 @@ function ddayInfo(x){
 // 묻는 말 끝(저장하지 않고 찾아서 답함) — '언제지·뭐였지·어디야·몇 시야·얼마였지·있었나·찾아줘' 등
 const Q_END_RE = /(찾아\s*(줘|봐|주세요)?|검색해?\s*(줘)?|있었나|있었지|있었어|있나요?|있지|있니|있냐|있던가|언제\s*(였|이었|이)?\s*(지|야|더라|니|냐|예요|에요|죠|였지|였더라)?|뭐\s*(였|이었|이)?\s*(지|야|더라|였지|였더라)|무엇이었지|어디\s*(였|이었|이)?\s*(지|야|더라|였지)|몇\s*(시|일|번|개|월|명)\S*|며칠\S*|얼마\S*|받았지|냈지|줬지|했었지|했나|했지|했더라)\s*[?？.]*\s*$/;
 const SAVE_WORD_RE = /(넣어|추가|등록|저장|잡아|기록|입력|적어|메모해|기억해)/;
+const LEAVE_NAME = {full:'연차', am:'오전 반차', pm:'오후 반차', half:'반차', q:'반반차'};
+const LEAVE_DAYS = {full:1, am:0.5, pm:0.5, half:0.5, q:0.25};
 const WD = {'일':0,'월':1,'화':2,'수':3,'목':4,'금':5,'토':6};
 function parseCommand(raw){
   let t = ' ' + raw.trim().replace(/\s+/g, ' ') + ' ';
@@ -613,6 +620,17 @@ function parseCommand(raw){
   }
   // 기본은 일정(운영자 결정 10-30) — '메모해줘·메모·기억해·적어둬'라고 할 때만 메모. 날짜가 없으면 오늘 일정으로
   if(intent !== 'memo'){
+    // 내 연차·반차: "11월 5일 연차", "내일 오후 반차", "금요일 반반차 병원"
+    let leave = null;
+    if(/반반차/.test(raw)) leave = 'q';
+    else if(/반차/.test(raw)) leave = /오후/.test(raw) ? 'pm' : /오전/.test(raw) ? 'am' : 'half';
+    else if(/(연차|월차)/.test(raw) && !/(몇|남|썼|사용)/.test(raw)) leave = 'full';
+    if(leave){
+      const rest = title.replace(/(오전|오후)?\s*(반반차|반차|연차|월차)\s*(써|쓰기|사용|신청|냄|냈어)?/g, ' ').replace(/(오전|오후)/g, ' ').replace(/\s+/g, ' ').trim();
+      title = LEAVE_NAME[leave] + (rest ? ' · ' + rest : '');
+      if(!date){ date = today; notes.push('날짜가 없어 오늘로'); }
+      return {kind:'event', date: ymd(date), time: null, end: null, title, leave, notes, repeat: null};
+    }
     if(!date){ date = today; notes.push('날짜가 없어 오늘로 — 메모면 [메모로]'); }
     if(repeatMonthly) notes.push('매월 반복');
     return {kind:'event', date: ymd(date), time, end, title, notes, repeat: repeatMonthly ? 'monthly' : null};
@@ -773,7 +791,7 @@ function renderCal(){
     h += '<div class="' + cls.join(' ') + '" onclick="calTap(\'' + s + '\',event)" ondblclick="calDbl(\'' + s + '\',event)"><div class="dn' + dn + '"><span>' + d.getDate() + '</span>' + (isNarrow() ? '' : '<i class="lun">' + lunarLabel(s) + '</i>') + '</div>';
     let pills = [];
     if(calShow.dday) pills = pills.concat(dd.map(o => '<span class="pill dd" data-k="dday" data-id="' + o.x.id + '">' + esc(o.label) + '</span>'));
-    if(calShow.event) pills = pills.concat(ev.map(x => '<span class="pill ev" data-k="event" data-id="' + x.id + '">' + (x.time ? (isNarrow() ? shortTime(x.time) : x.time.replace(/^0/,'')) + ' ' : '') + esc(x.title) + '</span>'));
+    if(calShow.event) pills = pills.concat(ev.map(x => '<span class="pill ' + (x.leave ? 'lv' : 'ev') + '" data-k="event" data-id="' + x.id + '">' + (x.time ? (isNarrow() ? shortTime(x.time) : x.time.replace(/^0/,'')) + ' ' : '') + esc(x.title) + '</span>'));
     if(calShow.memo) pills = pills.concat(mm.map(x => '<span class="pill memo" data-k="memo" data-id="' + x.id + '">' + esc(x.text.split('\n')[0]) + '</span>'));
     h += pills.slice(0, MAX).join('');
     if(pills.length > MAX) h += '<div class="more">+' + (pills.length - MAX) + '</div>';
@@ -813,7 +831,7 @@ function sideHtml(){
     + '<button class="btn sec sm" onclick="editMemo(null,\'' + selDate + '\')">+ 메모</button></div>';
   if(!ev.length && !mm.length && !dd.length) h += '<div class="empty" style="padding:14px 0">이 날은 비어 있어요.</div>';
   dd.forEach(o => h += '<div class="scard" onclick="editDday(\'' + o.x.id + '\')"><div class="st"><i class="dot dd"></i>' + esc(o.label) + '</div><div class="ss">기념일</div></div>');
-  ev.forEach(x => h += '<div class="scard" onclick="editEvent(\'' + x.id + '\')"><button class="sdel" aria-label="삭제" onclick="event.stopPropagation();quickDelete(\'' + x.id + '\')">' + IC.x + '</button><div class="st"><i class="dot ev"></i>' + esc(x.title) + '</div><div class="ss">' + (x.time ? fmtTime(x.time) : '종일') + (x.note ? '\n' + esc(x.note) : '') + '</div></div>');
+  ev.forEach(x => h += '<div class="scard" onclick="editEvent(\'' + x.id + '\')"><button class="sdel" aria-label="삭제" onclick="event.stopPropagation();quickDelete(\'' + x.id + '\')">' + IC.x + '</button><div class="st"><i class="dot ' + (x.leave ? 'lv' : 'ev') + '"></i>' + esc(x.title) + '</div><div class="ss">' + (x.leave ? '내 휴가 · ' + LEAVE_DAYS[x.leave] + '일' : x.time ? fmtTime(x.time) : '종일') + (x.note ? '\n' + esc(x.note) : '') + '</div></div>');
   mm.forEach(x => h += '<div class="scard" onclick="editMemo(\'' + x.id + '\')"><button class="sdel" aria-label="삭제" onclick="event.stopPropagation();quickDelete(\'' + x.id + '\')">' + IC.x + '</button><div class="st"><i class="dot memo"></i>' + esc(x.text.split('\n')[0]) + '</div>' + (x.text.includes('\n') ? '<div class="ss">' + esc(x.text.split('\n').slice(1).join('\n')) + '</div>' : '<div class="ss">메모</div>') + '</div>');
   // 다가오는 기념일 (30일 안)
   const soon = ddays().map(x => ({x, i: ddayInfo(x)})).filter(o => o.i.soon != null && o.i.soon >= 0 && o.i.soon <= 30).sort((a, b) => a.i.soon - b.i.soon).slice(0, 5);
@@ -987,7 +1005,7 @@ function renderMore(){
     + '<div class="seg" style="margin-bottom:12px">' + [['name','이름순'],['in','받은 순'],['out','낸 순'],['recent','최근']].map(([k, l]) => '<button class="' + (giftSort === k ? 'on' : '') + '" onclick="giftSort=\'' + k + '\';renderMore()">' + l + '</button>').join('') + '</div>';
   if(moreSub === 'ref') h += '<div class="search" style="margin-bottom:10px">' + IC.search + '<input id="refInput" placeholder="예) 장인상, 연차, 대부" value="' + esc(refQ) + '" oninput="refQ=this.value;renderDrawerBody()"></div>'
     + '<div class="chips">' + [['','전체'],['경조사','경조사'],['휴가','휴가'],['복지','복지·대부'],['절차','신청 절차']].map(([k, l]) => '<button class="chip' + (refCat === k ? ' on' : '') + '" onclick="refCat=\'' + k + '\';renderMore()">' + l + '</button>').join('') + '</div>'
-    + '<div class="refcard"><h4>연차 계산</h4><div class="row" style="flex-wrap:nowrap"><input type="date" id="f_join" style="flex:1" onchange="calcLeave()"><span id="leaveOut" style="font-weight:800;white-space:nowrap">입사일을 넣어 주세요</span></div><div class="muted" style="margin-top:6px">입사일 기준 계산 — 실제 부여일수는 관리부 확인</div></div>';
+    + '<div class="refcard"><h4>내 연차</h4><div class="row" style="flex-wrap:nowrap"><input type="date" id="f_join" style="flex:1" value="' + esc(joinDate()) + '" onchange="setJoinDate(this.value)"><span id="leaveOut" style="font-weight:800;white-space:nowrap">입사일을 넣어 주세요</span></div><div id="leaveUse" style="margin-top:8px"></div><div class="muted" style="margin-top:6px">입사일 기준 계산 — 실제 부여일수는 관리부 확인. 달력에 \"11월 5일 연차\"·\"내일 오후 반차\"처럼 넣으면 여기 쌓여요.</div></div>';
   if(moreSub === 'link') h += '<div class="row" style="justify-content:flex-end;margin-bottom:10px"><button class="btn pri sm" onclick="editLink(null)">+ 바로가기</button></div>';
   document.getElementById('tab-more').innerHTML = h + '<div id="drawerBody"></div></div>';
   renderDrawerBody();
@@ -995,7 +1013,7 @@ function renderMore(){
 function renderDrawerBody(){
   const box = document.getElementById('drawerBody'); if(!box) return;
   if(moreSub === 'gift') box.innerHTML = giftListHtml();
-  else if(moreSub === 'ref') box.innerHTML = refListHtml();
+  else if(moreSub === 'ref'){ box.innerHTML = refListHtml(); calcLeave(); }
   else box.innerHTML = linkListHtml();
 }
 // 사람별로 묶기(이름 같으면 한 사람)
@@ -1093,14 +1111,40 @@ function refListHtml(){
     + '<div class="muted" style="margin-top:6px">' + esc((refs().find(x => x.src) || {}).src || '') + '</div>';
 }
 function openRef(id){ moreSub = 'ref'; refQ = ''; refCat = ''; showTab('more'); setTimeout(() => { const el = document.getElementById('ref_' + id); if(el) el.scrollIntoView({block: 'center'}); }, 50); }
+// 내 연차: 입사일(이 기기 저장) 기준 발생 일수 + 달력의 휴가 일정(leave)으로 사용·남은 일수
+function joinDate(){ try{ return localStorage.getItem('kbs_join') || ''; }catch(e){ return ''; } }
+function setJoinDate(v){ try{ v ? localStorage.setItem('kbs_join', v) : localStorage.removeItem('kbs_join'); }catch(e){} calcLeave(); }
+function leaveStats(){
+  const v = joinDate(), t = parseYmd(todayYmd());
+  let start, end, entitled = null, tenure = '';
+  if(v && parseYmd(v) <= t){
+    const j = parseYmd(v);
+    let months = (t.getFullYear() - j.getFullYear()) * 12 + (t.getMonth() - j.getMonth()); if(t.getDate() < j.getDate()) months--;
+    const years = Math.floor(months / 12);
+    entitled = years < 1 ? Math.min(11, months) : Math.min(25, 15 + Math.floor((years - 1) / 2));
+    tenure = years < 1 ? months + '개월' : '만 ' + years + '년';
+    start = new Date(t.getFullYear(), j.getMonth(), j.getDate()); if(start > t) start.setFullYear(start.getFullYear() - 1);
+    end = addDays(new Date(start.getFullYear() + 1, start.getMonth(), start.getDate()), -1);
+  } else { start = new Date(t.getFullYear(), 0, 1); end = new Date(t.getFullYear(), 11, 31); }
+  const s0 = ymd(start), e0 = ymd(end), tY = todayYmd();
+  const list = events().filter(x => x.leave && x.date >= s0 && x.date <= e0).sort((a, b) => a.date.localeCompare(b.date));
+  const sum = a => a.reduce((n, x) => n + (LEAVE_DAYS[x.leave] || 0), 0);
+  const used = sum(list.filter(x => x.date <= tY)), plan = sum(list.filter(x => x.date > tY));
+  return {start: s0, end: e0, entitled, tenure, used, plan, list, left: entitled == null ? null : entitled - used - plan};
+}
+function leaveSummary(){
+  const st = leaveStats(), f = n => String(Math.round(n * 100) / 100);
+  return (st.entitled == null ? '올해 ' : '이번 연차 기간 ') + '사용 ' + f(st.used) + '일' + (st.plan ? ', 예정 ' + f(st.plan) + '일' : '')
+    + (st.left == null ? '' : ', 남은 연차 ' + f(st.left) + '일 (발생 ' + st.entitled + '일)') + '이에요.';
+}
 function calcLeave(){
-  const v = val('f_join'), out = document.getElementById('leaveOut'); if(!v){ out.textContent = '입사일을 넣어 주세요'; return; }
-  const j = parseYmd(v), t = parseYmd(todayYmd());
-  if(j > t){ out.textContent = '미래 날짜예요'; return; }
-  let months = (t.getFullYear() - j.getFullYear()) * 12 + (t.getMonth() - j.getMonth()); if(t.getDate() < j.getDate()) months--;
-  const years = Math.floor(months / 12);
-  const days = years < 1 ? Math.min(11, months) : Math.min(25, 15 + Math.floor((years - 1) / 2));
-  out.textContent = (years < 1 ? months + '개월' : '만 ' + years + '년') + ' · ' + days + '일';
+  const out = document.getElementById('leaveOut'), box = document.getElementById('leaveUse'); if(!out) return;
+  const st = leaveStats(), f = n => String(Math.round(n * 100) / 100);
+  out.textContent = st.entitled == null ? '입사일을 넣어 주세요' : st.tenure + ' · ' + st.entitled + '일';
+  if(!box) return;
+  let h = '<div style="font-weight:700">' + st.start.replace(/-/g, '.') + ' ~ ' + st.end.replace(/-/g, '.') + ' · 사용 ' + f(st.used) + '일' + (st.plan ? ' · 예정 ' + f(st.plan) + '일' : '') + (st.left == null ? '' : ' · <span class="gin">남은 ' + f(st.left) + '일</span>') + '</div>';
+  if(st.list.length) h += '<div class="muted" style="margin-top:4px;line-height:1.6">' + st.list.map(x => '<span style="cursor:pointer;white-space:nowrap" onclick="openItem(\'' + x.id + '\')"><span class="tag lv">' + esc(LEAVE_NAME[x.leave]) + '</span>' + fmtDate(x.date) + '</span>').join(' ') + '</div>';
+  box.innerHTML = h;
 }
 function linkListHtml(){
   const list = links();
@@ -1167,6 +1211,7 @@ function editEvent(id, date){
     + '<div class="field"><label>제목</label><input id="f_title" value="' + esc(x.title) + '" placeholder="예) 면접"></div>'
     + '<div class="row"><div class="field" style="flex:1"><label>날짜</label><input type="date" id="f_date" value="' + esc(x.date) + '"></div>'
     + '<div class="field" style="flex:1"><label>시간 (비우면 종일)</label><input type="time" id="f_time" value="' + esc(x.time || '') + '"></div></div>'
+    + '<div class="field"><label>내 휴가</label><select id="f_leave"><option value="">휴가 아님</option>' + Object.entries(LEAVE_NAME).map(([k, l]) => '<option value="' + k + '"' + (x.leave === k ? ' selected' : '') + '>' + l + ' (' + LEAVE_DAYS[k] + '일)</option>').join('') + '</select></div>'
     + '<div class="field"><label>반복</label><select id="f_repeat"><option value="">반복 없음</option><option value="monthly"' + (x.repeat === 'monthly' ? ' selected' : '') + '>매월 같은 날</option></select></div>'
     + '<div class="field"><label>메모</label><textarea id="f_note" placeholder="장소·준비물 등">' + esc(x.note || '') + '</textarea></div>'
     + '<div class="row" style="justify-content:space-between;margin-top:6px">'
@@ -1178,7 +1223,7 @@ function saveEvent(id){
   const title = val('f_title'), date = val('f_date');
   if(!title || !date){ toast('제목과 날짜를 넣어 주세요'); return; }
   const x = id ? DB.items.find(i => i.id === id) : {id: uid(), type:'event'};
-  Object.assign(x, {title, date, time: val('f_time') || null, note: val('f_note'), repeat: val('f_repeat') || null});
+  Object.assign(x, {title, date, time: val('f_time') || null, note: val('f_note'), repeat: val('f_repeat') || null, leave: val('f_leave') || null});
   upsert(x); closeModal(); toast('저장했어요');
 }
 function editMemo(id, date){
@@ -1342,6 +1387,14 @@ async function onAsk(fromVoice){
   let p = null;
   const q0 = parseCommand(text);
   if(q0.kind === 'day' || q0.kind === 'week'){ answerDay(q0, fromVoice); inp.value = ''; saveAskDraft(); return; }
+  if(/(연차|반차|휴가)/.test(text) && /(남|썼|사용|몇|며칠)/.test(text) && !SAVE_WORD_RE.test(text)){
+    const msg = leaveSummary();
+    moreSub = 'ref'; showTab('more');
+    document.getElementById('pvBox').innerHTML = '<div class="sum"><span class="tag lv">연차</span>' + esc(msg) + '</div><div class="row"><button class="btn sec" onclick="cancelPending()">닫기</button></div>';
+    document.getElementById('preview').classList.add('show');
+    if(fromVoice) speak(msg);
+    inp.value = ''; saveAskDraft(); return;
+  }
   const dq = ddQuestion(text);
   if(dq){ answerDdq(dq, fromVoice); inp.value = ''; saveAskDraft(); return; }
   const multi = splitMulti(text);
@@ -1496,6 +1549,7 @@ function splitMulti(text){
 function won(a){ return Number(a || 0).toLocaleString('ko-KR') + '원'; }
 function pvSummary(p){
   if(p.kind === 'gift') return p.nm + ' · ' + p.ev + ' · ' + won(p.a) + (p.dir === 'in' ? ' 받음' : ' 냄') + ' (' + fmtDate(p.date) + ')';
+  if(p.kind === 'event' && p.leave) return fmtDate(p.date) + ' · ' + p.title + ' (' + LEAVE_DAYS[p.leave] + '일 사용)';
   if(p.kind === 'event') return fmtDate(p.date) + (p.time ? ' ' + fmtTime(p.time) + (p.end ? '~' + fmtTime(p.end) : '') : ' 종일') + ' · ' + p.title;
   if(p.kind === 'dday') return p.title + ' · ' + ddDateLabel({kind: p.ddKind || 'since', date: p.date, lunar: p.lunar, noYear: p.noYear}) + (p.ddKind === 'yearly' ? '' : ' · ' + DD_KIND[p.ddKind || 'since']);
   return p.text + (p.date ? ' (' + fmtDate(p.date) + ')' : '');
@@ -1598,7 +1652,7 @@ function confirmPending(){
   if(p.kind === 'gift'){
     upsert({id: uid(), type:'gift', dir: p.dir, nm: p.nm, a: p.a, ev: p.ev, d: p.date, rel:'', grp:'', memo:'', src:'ask'});
   } else if(p.kind === 'event'){
-    upsert({id: uid(), type:'event', date: p.date, time: p.time || null, title: p.title, note: p.end ? '~' + fmtTime(p.end) + '까지' : '', src: 'ask', repeat: p.repeat || null});
+    upsert({id: uid(), type:'event', date: p.date, time: p.time || null, title: p.title, note: p.end ? '~' + fmtTime(p.end) + '까지' : '', src: 'ask', repeat: p.repeat || null, leave: p.leave || null});
     selectDate(p.date);
     if(TAB !== 'cal') showTab('cal');
   } else if(p.kind === 'dday'){
