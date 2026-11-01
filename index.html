@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10.9-multi-words">
+<meta name="app-build-version" content="v10.10-leave-base">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10.9-multi-words';</script>
+<script>window.APP_BUILD = 'v10.10-leave-base';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -1005,7 +1005,14 @@ function renderMore(){
     + '<div class="seg" style="margin-bottom:12px">' + [['name','이름순'],['in','받은 순'],['out','낸 순'],['recent','최근']].map(([k, l]) => '<button class="' + (giftSort === k ? 'on' : '') + '" onclick="giftSort=\'' + k + '\';renderMore()">' + l + '</button>').join('') + '</div>';
   if(moreSub === 'ref') h += '<div class="search" style="margin-bottom:10px">' + IC.search + '<input id="refInput" placeholder="예) 장인상, 연차, 대부" value="' + esc(refQ) + '" oninput="refQ=this.value;renderDrawerBody()"></div>'
     + '<div class="chips">' + [['','전체'],['경조사','경조사'],['휴가','휴가'],['복지','복지·대부'],['절차','신청 절차']].map(([k, l]) => '<button class="chip' + (refCat === k ? ' on' : '') + '" onclick="refCat=\'' + k + '\';renderMore()">' + l + '</button>').join('') + '</div>'
-    + '<div class="refcard"><h4>내 연차</h4><div class="row" style="flex-wrap:nowrap"><input type="date" id="f_join" style="flex:1" value="' + esc(joinDate()) + '" onchange="setJoinDate(this.value)"><span id="leaveOut" style="font-weight:800;white-space:nowrap">입사일을 넣어 주세요</span></div><div id="leaveUse" style="margin-top:8px"></div><div class="muted" style="margin-top:6px">입사일 기준 계산 — 실제 부여일수는 관리부 확인. 달력에 \"11월 5일 연차\"·\"내일 오후 반차\"처럼 넣으면 여기 쌓여요.</div></div>';
+    + '<div class="refcard"><h4>내 연차</h4>'
+    + '<div class="row" style="flex-wrap:nowrap;gap:8px"><label class="muted" style="white-space:nowrap">입사일</label><input type="date" id="f_join" style="flex:1" value="' + esc(joinDate()) + '" onchange="setLeaveCfg({join:this.value})"><span id="leaveOut" style="font-weight:800;white-space:nowrap"></span></div>'
+    + '<div class="row" style="flex-wrap:nowrap;gap:8px;margin-top:6px"><label class="muted" style="white-space:nowrap">연차 기간</label><select id="f_lbasis" style="flex:1" onchange="setLeaveCfg({basis:this.value})"><option value="fiscal"' + (leaveCfg().basis !== 'join' ? ' selected' : '') + '>회계연도 (1월~12월)</option><option value="join"' + (leaveCfg().basis === 'join' ? ' selected' : '') + '>입사일 기준</option></select></div>'
+    + '<details style="margin-top:6px"' + (leaveCfg().baseDate ? '' : ' open') + '><summary class="muted">회사 안내문 숫자 맞추기' + (leaveCfg().baseDate ? ' — ' + esc(leaveCfg().baseDate) + ' 기준 발생 ' + leaveCfg().baseTotal + '일 · 사용 ' + leaveCfg().baseUsed + '일' : '') + '</summary>'
+    + '<div class="row" style="gap:6px;margin-top:6px"><div class="field" style="flex:1.3;margin:0"><label>기준일</label><input type="date" id="f_lbd" value="' + esc(leaveCfg().baseDate || '') + '"></div><div class="field" style="flex:1;margin:0"><label>발생</label><input id="f_lbt" inputmode="decimal" value="' + esc(leaveCfg().baseTotal == null ? '' : leaveCfg().baseTotal) + '" placeholder="17"></div><div class="field" style="flex:1;margin:0"><label>사용</label><input id="f_lbu" inputmode="decimal" value="' + esc(leaveCfg().baseUsed == null ? '' : leaveCfg().baseUsed) + '" placeholder="4.25"></div></div>'
+    + '<div class="row" style="justify-content:flex-end;margin-top:6px"><button class="btn sec sm" onclick="setLeaveCfg({baseDate:null,baseTotal:null,baseUsed:null})">지우기</button><button class="btn pri sm" onclick="saveLeaveBase()">맞추기</button></div>'
+    + '<div class="muted" style="margin-top:4px">안내문 기준일까지는 회사 숫자를 쓰고, 그 뒤 달력에 넣은 연차·반차만 더해요.</div></details>'
+    + '<div id="leaveUse" style="margin-top:8px"></div><div class="muted" style="margin-top:6px">실제 일수는 관리부 기준이 우선. 달력에 &quot;11월 5일 연차&quot;·&quot;내일 오후 반차&quot;처럼 넣으면 여기 쌓여요.</div></div>';
   if(moreSub === 'link') h += '<div class="row" style="justify-content:flex-end;margin-bottom:10px"><button class="btn pri sm" onclick="editLink(null)">+ 바로가기</button></div>';
   document.getElementById('tab-more').innerHTML = h + '<div id="drawerBody"></div></div>';
   renderDrawerBody();
@@ -1112,11 +1119,23 @@ function refListHtml(){
 }
 function openRef(id){ moreSub = 'ref'; refQ = ''; refCat = ''; showTab('more'); setTimeout(() => { const el = document.getElementById('ref_' + id); if(el) el.scrollIntoView({block: 'center'}); }, 50); }
 // 내 연차: 입사일(이 기기 저장) 기준 발생 일수 + 달력의 휴가 일정(leave)으로 사용·남은 일수
-function joinDate(){ try{ return localStorage.getItem('kbs_join') || ''; }catch(e){ return ''; } }
-function setJoinDate(v){ try{ v ? localStorage.setItem('kbs_join', v) : localStorage.removeItem('kbs_join'); }catch(e){} calcLeave(); }
+// 연차 설정은 기록 하나(id 'cfg-leave', type 'cfg')로 저장 → PC·폰 동기화 {join, basis:'fiscal'|'join', baseDate, baseTotal, baseUsed}
+function leaveCfg(){ return DB.items.find(x => x.id === 'cfg-leave' && !x.deleted) || {}; }
+function setLeaveCfg(patch){
+  const c = DB.items.find(x => x.id === 'cfg-leave') || {id: 'cfg-leave', type: 'cfg'};
+  delete c.deleted; Object.assign(c, patch); upsert(c);
+  if(TAB === 'more' && moreSub === 'ref') renderMore(); else calcLeave();
+}
+function saveLeaveBase(){
+  const d = val('f_lbd'), t = parseFloat(val('f_lbt')), u = parseFloat(val('f_lbu'));
+  if(!d || isNaN(t) || isNaN(u)){ toast('기준일·발생·사용을 모두 넣어 주세요'); return; }
+  setLeaveCfg({baseDate: d, baseTotal: t, baseUsed: u}); toast('회사 안내문 숫자로 맞췄어요');
+}
+function joinDate(){ const c = leaveCfg(); if(c.join) return c.join; try{ return localStorage.getItem('kbs_join') || ''; }catch(e){ return ''; } }
 function leaveStats(){
   const v = joinDate(), t = parseYmd(todayYmd());
   let start, end, entitled = null, tenure = '';
+  const cfg = leaveCfg(), fiscal = cfg.basis !== 'join';
   if(v && parseYmd(v) <= t){
     const j = parseYmd(v);
     let months = (t.getFullYear() - j.getFullYear()) * 12 + (t.getMonth() - j.getMonth()); if(t.getDate() < j.getDate()) months--;
@@ -1125,12 +1144,17 @@ function leaveStats(){
     tenure = years < 1 ? months + '개월' : '만 ' + years + '년';
     start = new Date(t.getFullYear(), j.getMonth(), j.getDate()); if(start > t) start.setFullYear(start.getFullYear() - 1);
     end = addDays(new Date(start.getFullYear() + 1, start.getMonth(), start.getDate()), -1);
-  } else { start = new Date(t.getFullYear(), 0, 1); end = new Date(t.getFullYear(), 11, 31); }
+  }
+  if(fiscal || !start){ start = new Date(t.getFullYear(), 0, 1); end = new Date(t.getFullYear(), 11, 31); }
   const s0 = ymd(start), e0 = ymd(end), tY = todayYmd();
   const list = events().filter(x => x.leave && x.date >= s0 && x.date <= e0).sort((a, b) => a.date.localeCompare(b.date));
   const sum = a => a.reduce((n, x) => n + (LEAVE_DAYS[x.leave] || 0), 0);
-  const used = sum(list.filter(x => x.date <= tY)), plan = sum(list.filter(x => x.date > tY));
-  return {start: s0, end: e0, entitled, tenure, used, plan, list, left: entitled == null ? null : entitled - used - plan};
+  // 회사 안내문 기준(그 기간 안이면): 기준일까지는 회사 숫자, 그 뒤 달력 휴가만 더함
+  const b = cfg.baseDate && cfg.baseDate >= s0 && cfg.baseDate <= e0 ? cfg : null;
+  const after = b ? list.filter(x => x.date > b.baseDate) : list;
+  if(b) entitled = Number(b.baseTotal);
+  const used = (b ? Number(b.baseUsed) : 0) + sum(after.filter(x => x.date <= tY)), plan = sum(after.filter(x => x.date > tY));
+  return {start: s0, end: e0, entitled, tenure, used, plan, list: after, base: b, left: entitled == null ? null : entitled - used - plan};
 }
 function leaveSummary(){
   const st = leaveStats(), f = n => String(Math.round(n * 100) / 100);
@@ -1140,7 +1164,7 @@ function leaveSummary(){
 function calcLeave(){
   const out = document.getElementById('leaveOut'), box = document.getElementById('leaveUse'); if(!out) return;
   const st = leaveStats(), f = n => String(Math.round(n * 100) / 100);
-  out.textContent = st.entitled == null ? '입사일을 넣어 주세요' : st.tenure + ' · ' + st.entitled + '일';
+  out.textContent = st.entitled == null ? '입사일을 넣어 주세요' : (st.tenure ? st.tenure + ' · ' : '') + '발생 ' + st.entitled + '일';
   if(!box) return;
   let h = '<div style="font-weight:700">' + st.start.replace(/-/g, '.') + ' ~ ' + st.end.replace(/-/g, '.') + ' · 사용 ' + f(st.used) + '일' + (st.plan ? ' · 예정 ' + f(st.plan) + '일' : '') + (st.left == null ? '' : ' · <span class="gin">남은 ' + f(st.left) + '일</span>') + '</div>';
   if(st.list.length) h += '<div class="muted" style="margin-top:4px;line-height:1.6">' + st.list.map(x => '<span style="cursor:pointer;white-space:nowrap" onclick="openItem(\'' + x.id + '\')"><span class="tag lv">' + esc(LEAVE_NAME[x.leave]) + '</span>' + fmtDate(x.date) + '</span>').join(' ') + '</div>';
