@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10.6-event-first">
+<meta name="app-build-version" content="v10.7-cal-swipe">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10.6-event-first';</script>
+<script>window.APP_BUILD = 'v10.7-cal-swipe';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -91,7 +91,11 @@ textarea{resize:vertical;min-height:90px;line-height:1.5}
 /* 달력 */
 .cal-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:20px}
 @media (min-width:980px){ .cal-layout{grid-template-columns:minmax(0,1fr) 300px} }
-.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;touch-action:pan-y}
+.cal.slide-l{animation:calL .18s ease-out} .cal.slide-r{animation:calR .18s ease-out}
+@keyframes calL{from{transform:translateX(24px);opacity:.4}to{transform:none;opacity:1}}
+@keyframes calR{from{transform:translateX(-24px);opacity:.4}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion: reduce){ .cal.slide-l,.cal.slide-r{animation:none} }
 .cal .dow{font-size:13px;font-weight:700;padding:2px 8px 4px;color:var(--sub)}
 .cal .dow.sun{color:var(--sun)} .cal .dow.sat{color:var(--sat)}
 .cell{min-height:118px;background:var(--cell);border:1.5px solid transparent;border-radius:12px;padding:8px;overflow:hidden;cursor:pointer;min-width:0}
@@ -819,7 +823,21 @@ function sideHtml(){
   }
   return h;
 }
-function calStep(n){ viewM += n; if(viewM < 0){ viewM = 11; viewY--; } if(viewM > 11){ viewM = 0; viewY++; } render(); }
+function calStep(n){
+  viewM += n; if(viewM < 0){ viewM = 11; viewY--; } if(viewM > 11){ viewM = 0; viewY++; } render();
+  const c = document.querySelector('#tab-cal .cal'); if(c) c.classList.add(n > 0 ? 'slide-l' : 'slide-r'); // 넘어가는 방향으로 살짝 밀리는 효과
+}
+// 달력 좌우로 밀어서 달 이동(폰): 가로로 50px 넘게, 세로보다 확실히 가로로 밀었을 때만
+(function(){
+  let sx = 0, sy = 0, on = false;
+  const el = document.getElementById('tab-cal');
+  el.addEventListener('touchstart', e => { if(!e.target.closest('.cal') || e.touches.length !== 1){ on = false; return; } on = true; sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive: true});
+  el.addEventListener('touchend', e => {
+    if(!on) return; on = false;
+    const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+    if(Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) calStep(dx < 0 ? 1 : -1);
+  }, {passive: true});
+})();
 function calToday(){ const n = new Date(); viewY = n.getFullYear(); viewM = n.getMonth(); selDate = todayYmd(); render(); }
 function selectDate(s){
   selDate = s; const d = parseYmd(s);
