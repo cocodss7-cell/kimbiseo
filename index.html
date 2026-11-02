@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10.11-install">
+<meta name="app-build-version" content="v10.12-ask-gift2">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10.11-install';</script>
+<script>window.APP_BUILD = 'v10.12-ask-gift2';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -482,7 +482,7 @@ function ddayInfo(x){
 
 // ---------- 말 → 일정/메모 해석 (1단계: 규칙 기반, 2단계에서 Claude로 보강) ----------
 // 묻는 말 끝(저장하지 않고 찾아서 답함) — '언제지·뭐였지·어디야·몇 시야·얼마였지·있었나·찾아줘' 등
-const Q_END_RE = /(찾아\s*(줘|봐|주세요)?|검색해?\s*(줘)?|있었나|있었지|있었어|있나요?|있지|있니|있냐|있던가|언제\s*(였|이었|이)?\s*(지|야|더라|니|냐|예요|에요|죠|였지|였더라)?|뭐\s*(였|이었|이)?\s*(지|야|더라|였지|였더라)|무엇이었지|어디\s*(였|이었|이)?\s*(지|야|더라|였지)|몇\s*(시|일|번|개|월|명)\S*|며칠\S*|얼마\S*|받았지|냈지|줬지|했었지|했나|했지|했더라)\s*[?？.]*\s*$/;
+const Q_END_RE = /(찾아\s*(줘|봐|주세요)?|검색해?\s*(줘)?|있었나|있었지|있었어|있나요?|있지|있니|있냐|있던가|언제\s*(였|이었|이)?\s*(지|야|더라|니|냐|예요|에요|죠|였지|였더라)?|뭐\s*(였|이었|이)?\s*(지|야|더라|였지|였더라)|무엇이었지|어디\s*(였|이었|이)?\s*(지|야|더라|였지)|몇\s*(시|일|번|개|월|명)\S*|며칠\S*|얼마\S*|얼마\s*(나|를|이나)?\s*(받았|냈|줬|보냈|드렸|했|들어왔)\S*|(알려|말해)\s*(줘|줄래|주세요)|받았지|냈지|줬지|했었지|했나|했지|했더라)\s*[?？.]*\s*$/;
 const SAVE_WORD_RE = /(넣어|추가|등록|저장|잡아|기록|입력|적어|메모해|기억해)/;
 const LEAVE_NAME = {full:'연차', am:'오전 반차', pm:'오후 반차', half:'반차', q:'반반차'};
 const LEAVE_DAYS = {full:1, am:0.5, pm:0.5, half:0.5, q:0.25};
@@ -1072,7 +1072,10 @@ function giftListHtml(){
   return h;
 }
 function giftFind(q){
-  const k = normalizeKo(q).replace(/얼마.*$/, '').replace(/(한테|에게|님|씨)$/, '');
+  const nq = normalizeKo(q);
+  const inQ = giftPeople().filter(p => { const n = normalizeKo(p.nm); return n.length >= 2 && nq.includes(n); }).sort((a, b) => b.nm.length - a.nm.length)[0];
+  if(inQ) return inQ; // "한상혁이 나한테 얼마 보냈어?"처럼 문장 속 이름
+  const k = nq.replace(/얼마.*$/, '').replace(/(한테|에게|님|씨)$/, '');
   if(k.length < 2) return null;
   return giftPeople().find(p => normalizeKo(p.nm) === k) || giftPeople().filter(p => normalizeKo(p.nm).includes(k)).sort((a, b) => a.nm.length - b.nm.length)[0] || null;
 }
@@ -1087,7 +1090,9 @@ function giftSummary(q){
     const when = l && l.d ? ymdParts(l.d).y + '년 ' : '';
     return word + ' 돈 ' + say(sum) + (n > 1 ? ' (' + n + '번, 최근 ' + when + (l.ev || '') + ' ' + say(Number(l.a || 0)) + ')' : (l && (when || l.ev) ? ' (' + when + (l.ev || '') + ')' : ''));
   };
-  return p.nm + ', ' + one('out', p.outSum, '낸') + ', ' + one('in', p.inSum, '받은') + '.';
+  // 묻는 쪽을 먼저: "나한테 보냈어·받았어" = 받은 돈 먼저, 그 밖엔 낸 돈 먼저
+  const inFirst = /(나한테|나에게|저한테|받았|들어왔|보내왔)/.test(q);
+  return p.nm + ', ' + (inFirst ? one('in', p.inSum, '받은') + ', ' + one('out', p.outSum, '낸') : one('out', p.outSum, '낸') + ', ' + one('in', p.inSum, '받은')) + '.';
 }
 function editGift(id, preset){
   MODAL_CTX = ['editGift', id || null, null];
@@ -1455,6 +1460,8 @@ async function onAsk(fromVoice){
     if(fromVoice) speak(msg);
     inp.value = ''; saveAskDraft(); return;
   }
+  if(/(얼마|축의금|조의금|부의금|경조사)/.test(text) && !/\d+\s*(만|원)/.test(text) && !SAVE_WORD_RE.test(text) && giftFind(text)
+     && answerGift(text, fromVoice)){ inp.value = ''; saveAskDraft(); return; } // "한상혁이 나한테 얼마 보냈어?"
   const dq = ddQuestion(text);
   if(dq){ answerDdq(dq, fromVoice); inp.value = ''; saveAskDraft(); return; }
   const multi = splitMulti(text);
@@ -1469,16 +1476,7 @@ async function onAsk(fromVoice){
   if(p.kind === 'find'){
     document.getElementById('preview').classList.remove('show');
     inp.value = ''; saveAskDraft();
-    const gs = giftSummary(p.query);
-    if(gs){
-      // 경조사 질문은 어느 화면에서 물어도 서랍 › 경조사 장부의 그 사람을 펼쳐서 보여 줌
-      const gp = giftFind(p.query);
-      moreSub = 'gift'; giftQ = gp.nm; giftOpen = String(gp.nm).replace(/\s+/g, ''); showTab('more');
-      document.getElementById('pvBox').innerHTML = '<div class="sum">' + esc(gs) + '</div><div class="row"><button class="btn sec" onclick="cancelPending()">닫기</button></div>';
-      document.getElementById('preview').classList.add('show');
-      if(fromVoice) speak(gs);
-      return;
-    }
+    if(answerGift(p.query, fromVoice)) return; // 경조사 질문은 서랍 › 경조사 장부의 그 사람을 펼쳐서
     findQ = p.query;
     answerFind(p.query, text, fromVoice);
     return;
@@ -1542,6 +1540,15 @@ function itemBrief(x){
   if(x.type === 'gift') return {tag:'<span class="tag dd">경조사</span>', say:'경조사, ' + x.nm + ' ' + (x.ev || '') + ' ' + won(x.a), line: x.nm + ' · ' + (x.ev || '') + ' · ' + won(x.a) + (x.dir === 'in' ? ' 받음' : ' 냄') + (x.d ? ' · ' + fmtDate(x.d, true) : '')};
   if(x.type === 'ref') return {tag:'<span class="tag ev">회사 규정</span>', say:'회사 규정, ' + x.title + ', ' + String(x.body || '').split('\n')[0], line: x.title + ' · ' + String(x.body || '').split('\n')[0]};
   return {tag:'<span class="tag memo">바로가기</span>', say:'바로가기, ' + x.title, line: x.title};
+}
+function answerGift(q, fromVoice){
+  const gs = giftSummary(q); if(!gs) return false;
+  const gp = giftFind(q);
+  moreSub = 'gift'; giftQ = gp.nm; giftOpen = String(gp.nm).replace(/\s+/g, ''); showTab('more');
+  document.getElementById('pvBox').innerHTML = '<div class="sum"><span class="tag dd">경조사</span>' + esc(gs) + '</div><div class="row"><button class="btn sec" onclick="cancelPending()">닫기</button></div>';
+  document.getElementById('preview').classList.add('show');
+  if(fromVoice) speak(gs);
+  return true;
 }
 function answerFind(q, raw, fromVoice){
   const res = searchItems(q).filter(o => o.x.type !== 'cfg');
