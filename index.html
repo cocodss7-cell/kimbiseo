@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10.13-paste-shoot">
+<meta name="app-build-version" content="v10.14-shoot-color">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10.13-paste-shoot';</script>
+<script>window.APP_BUILD = 'v10.14-shoot-color';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -20,21 +20,21 @@
   --ev-bg:#E6F4EA; --ev-tx:#1D5B33; --ev-dot:#34A853;
   --mm-bg:#FFF5D1; --mm-tx:#755800; --mm-dot:#F2B600;
   --dd-bg:#FFE9DA; --dd-tx:#9A4300; --dd-dot:#F57F17;
-  --lv-bg:#E3EEFF; --lv-tx:#1E4FA0; --lv-dot:#3B7BF6;
+  --lv-bg:#E3EEFF; --lv-tx:#1E4FA0; --lv-dot:#3B7BF6; --sh-bg:#F3E6FF; --sh-tx:#6B2FA8; --sh-dot:#9B5DE5;
   --shadow:0 1px 2px rgba(16,24,20,.04),0 4px 16px rgba(16,24,20,.05);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#0E1311; --card:#171D1A; --cell:#1D2421; --text:#E9EEEB; --sub:#97A39D; --line:#2A3330;
     --sun:#FF7B7F; --sat:#7AA5FF; --accent:#FFD166;
-    --ev-bg:#1E3527; --ev-tx:#A8DDB5; --mm-bg:#3A3215; --mm-tx:#F3D77A; --dd-bg:#3E2814; --dd-tx:#FFC08F; --lv-bg:#1B2B45; --lv-tx:#A9C6FF; --lv-dot:#6E9CFF;
+    --ev-bg:#1E3527; --ev-tx:#A8DDB5; --mm-bg:#3A3215; --mm-tx:#F3D77A; --dd-bg:#3E2814; --dd-tx:#FFC08F; --lv-bg:#1B2B45; --lv-tx:#A9C6FF; --lv-dot:#6E9CFF; --sh-bg:#33224A; --sh-tx:#D7B8FF; --sh-dot:#B98AF0;
     --shadow:none;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0E1311; --card:#171D1A; --cell:#1D2421; --text:#E9EEEB; --sub:#97A39D; --line:#2A3330;
   --sun:#FF7B7F; --sat:#7AA5FF; --accent:#FFD166;
-  --ev-bg:#1E3527; --ev-tx:#A8DDB5; --mm-bg:#3A3215; --mm-tx:#F3D77A; --dd-bg:#3E2814; --dd-tx:#FFC08F; --lv-bg:#1B2B45; --lv-tx:#A9C6FF; --lv-dot:#6E9CFF;
+  --ev-bg:#1E3527; --ev-tx:#A8DDB5; --mm-bg:#3A3215; --mm-tx:#F3D77A; --dd-bg:#3E2814; --dd-tx:#FFC08F; --lv-bg:#1B2B45; --lv-tx:#A9C6FF; --lv-dot:#6E9CFF; --sh-bg:#33224A; --sh-tx:#D7B8FF; --sh-dot:#B98AF0;
   --shadow:none;
 }
 *{box-sizing:border-box}
@@ -115,6 +115,7 @@ textarea{resize:vertical;min-height:90px;line-height:1.5}
 .pill.memo{background:var(--mm-bg);color:var(--mm-tx)}
 .pill.dd{background:var(--dd-bg);color:var(--dd-tx)}
 .pill.lv{background:var(--lv-bg);color:var(--lv-tx)} .dot.lv{background:var(--lv-dot)} .tag.lv{background:var(--lv-bg);color:var(--lv-tx)}
+.pill.sh{background:var(--sh-bg);color:var(--sh-tx)} .dot.sh{background:var(--sh-dot)} .tag.sh{background:var(--sh-bg);color:var(--sh-tx)}
 .cell .more{font-size:11px;color:var(--sub);margin-top:3px;padding-left:2px}
 @media (max-width:640px){
   .cal{gap:3px}
@@ -794,7 +795,7 @@ function renderCal(){
     h += '<div class="' + cls.join(' ') + '" onclick="calTap(\'' + s + '\',event)" ondblclick="calDbl(\'' + s + '\',event)"><div class="dn' + dn + '"><span>' + d.getDate() + '</span>' + (isNarrow() ? '' : '<i class="lun">' + lunarLabel(s) + '</i>') + '</div>';
     let pills = [];
     if(calShow.dday) pills = pills.concat(dd.map(o => '<span class="pill dd" data-k="dday" data-id="' + o.x.id + '">' + esc(o.label) + '</span>'));
-    if(calShow.event) pills = pills.concat(ev.map(x => '<span class="pill ' + (x.leave ? 'lv' : 'ev') + '" data-k="event" data-id="' + x.id + '">' + (x.time ? (isNarrow() ? shortTime(x.time) : x.time.replace(/^0/,'')) + ' ' : '') + esc(x.title) + '</span>'));
+    if(calShow.event) pills = pills.concat(ev.map(x => '<span class="pill ' + evCls(x) + '" data-k="event" data-id="' + x.id + '">' + (x.time ? (isNarrow() ? shortTime(x.time) : x.time.replace(/^0/,'')) + ' ' : '') + esc(x.title) + '</span>'));
     if(calShow.memo) pills = pills.concat(mm.map(x => '<span class="pill memo" data-k="memo" data-id="' + x.id + '">' + esc(x.text.split('\n')[0]) + '</span>'));
     h += pills.slice(0, MAX).join('');
     if(pills.length > MAX) h += '<div class="more">+' + (pills.length - MAX) + '</div>';
@@ -834,7 +835,7 @@ function sideHtml(){
     + '<button class="btn sec sm" onclick="editMemo(null,\'' + selDate + '\')">+ 메모</button></div>';
   if(!ev.length && !mm.length && !dd.length) h += '<div class="empty" style="padding:14px 0">이 날은 비어 있어요.</div>';
   dd.forEach(o => h += '<div class="scard" onclick="editDday(\'' + o.x.id + '\')"><div class="st"><i class="dot dd"></i>' + esc(o.label) + '</div><div class="ss">기념일</div></div>');
-  ev.forEach(x => h += '<div class="scard" onclick="editEvent(\'' + x.id + '\')"><button class="sdel" aria-label="삭제" onclick="event.stopPropagation();quickDelete(\'' + x.id + '\')">' + IC.x + '</button><div class="st"><i class="dot ' + (x.leave ? 'lv' : 'ev') + '"></i>' + esc(x.title) + '</div><div class="ss">' + (x.leave ? '내 휴가 · ' + LEAVE_DAYS[x.leave] + '일' : x.time ? fmtTime(x.time) : '종일') + (x.note ? '\n' + esc(x.note) : '') + '</div></div>');
+  ev.forEach(x => h += '<div class="scard" onclick="editEvent(\'' + x.id + '\')"><button class="sdel" aria-label="삭제" onclick="event.stopPropagation();quickDelete(\'' + x.id + '\')">' + IC.x + '</button><div class="st"><i class="dot ' + evCls(x) + '"></i>' + esc(x.title) + '</div><div class="ss">' + (x.leave ? '내 휴가 · ' + LEAVE_DAYS[x.leave] + '일' : x.time ? fmtTime(x.time) : '종일') + (x.note ? '\n' + esc(x.note) : '') + '</div></div>');
   mm.forEach(x => h += '<div class="scard" onclick="editMemo(\'' + x.id + '\')"><button class="sdel" aria-label="삭제" onclick="event.stopPropagation();quickDelete(\'' + x.id + '\')">' + IC.x + '</button><div class="st"><i class="dot memo"></i>' + esc(x.text.split('\n')[0]) + '</div>' + (x.text.includes('\n') ? '<div class="ss">' + esc(x.text.split('\n').slice(1).join('\n')) + '</div>' : '<div class="ss">메모</div>') + '</div>');
   // 다가오는 기념일 (30일 안)
   const soon = ddays().map(x => ({x, i: ddayInfo(x)})).filter(o => o.i.soon != null && o.i.soon >= 0 && o.i.soon <= 30).sort((a, b) => a.i.soon - b.i.soon).slice(0, 5);
@@ -1671,6 +1672,7 @@ function onAskPaste(e){
   e.preventDefault();
   PENDING = {kind:'shoots', rows, withUp: false}; showPreview(false);
 }
+function evCls(x){ return x.leave ? 'lv' : (x.src === 'xlsx' || String(x.id || '').indexOf('sh-') === 0) ? 'sh' : 'ev'; }
 function shootEventsOf(p){
   const ev = [], seen = {};
   p.rows.forEach(r => {
@@ -1689,7 +1691,7 @@ function showPreview(fromVoice){
     const ev = shootEventsOf(p), have = new Set(live().map(x => x.id));
     const nNew = ev.filter(x => !have.has(x.id)).length, nUp = p.rows.filter(r => r.up && r.up !== r.shoot).length;
     let h = '<div class="hint">엑셀에서 ' + p.rows.length + '줄 — 촬영일을 달력에 넣어요 (새로 ' + nNew + '건 · 이미 있는 건 날짜만 맞춤)</div>';
-    h += '<div style="max-height:34vh;overflow:auto">' + p.rows.map(r => '<div class="sum" style="font-size:14px"><span class="tag ev">촬영</span>' + esc(fmtDate(r.shoot) + ' · ' + r.co) + (r.fee ? ' <span class="muted">' + won(r.fee) + '</span>' : '') + (p.withUp && r.up && r.up !== r.shoot ? ' <span class="muted">· 업로드 ' + r.up.slice(5).replace('-', '/') + '</span>' : '') + '</div>').join('') + '</div>';
+    h += '<div style="max-height:34vh;overflow:auto">' + p.rows.map(r => '<div class="sum" style="font-size:14px"><span class="tag sh">촬영</span>' + esc(fmtDate(r.shoot) + ' · ' + r.co) + (r.fee ? ' <span class="muted">' + won(r.fee) + '</span>' : '') + (p.withUp && r.up && r.up !== r.shoot ? ' <span class="muted">· 업로드 ' + r.up.slice(5).replace('-', '/') + '</span>' : '') + '</div>').join('') + '</div>';
     h += '<div class="row"><button class="btn pri" onclick="confirmPending()">' + ev.length + '건 넣기</button>'
        + (nUp ? '<label style="display:flex;gap:6px;align-items:center;font-size:14px"><input type="checkbox" style="width:auto"' + (p.withUp ? ' checked' : '') + ' onchange="PENDING.withUp=this.checked;showPreview(false)">업로드일도</label>' : '')
        + '<button class="btn sec" onclick="cancelPending()">취소</button></div>';
