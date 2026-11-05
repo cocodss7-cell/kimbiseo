@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10.12-ask-gift2">
+<meta name="app-build-version" content="v10.13-paste-shoot">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10.12-ask-gift2';</script>
+<script>window.APP_BUILD = 'v10.13-paste-shoot';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -295,7 +295,7 @@ body.mini{padding-bottom:96px}
 <!-- 입력바 -->
 <div class="ask">
   <form class="ask-in" onsubmit="event.preventDefault();askSubmit();">
-    <input id="askInput" autocomplete="off" placeholder="10월 16일 18시 면접 넣어줘" oninput="saveAskDraft()">
+    <input id="askInput" autocomplete="off" placeholder="10월 16일 18시 면접 넣어줘" oninput="saveAskDraft()" onpaste="onAskPaste(event)">
     <button type="button" class="mic" id="micBtn" onclick="toggleMic()" aria-label="음성 입력"><svg class="ico" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
     <button type="submit" class="send">입력</button>
   </form>
@@ -1635,9 +1635,68 @@ function speakSummary(p){
   }
   return '메모할게요. ' + p.text;
 }
+// 엑셀 인스타 예약표를 입력칸에 붙여넣기 → 촬영일을 일정으로(엑셀이 원본, 김비서는 달력만)
+// 칸: 요청일 · 촬영일 · 업로드일 · 진행사항 · 업체명 · 비용 · (세금 · 입금액 · 입금 · 비고). 머리글 줄이 있으면 칸 이름으로 찾음.
+function shootDate(v){
+  const m = String(v || '').trim().match(/^(\d{4})[.\-\/년]\s*(\d{1,2})[.\-\/월]\s*(\d{1,2})/);
+  return m ? m[1] + '-' + pad(+m[2]) + '-' + pad(+m[3]) : null;
+}
+function hashStr(t){ let h = 5381; for(const c of t) h = ((h << 5) + h + c.codePointAt(0)) >>> 0; return h.toString(36); }
+function parseShootRows(text){
+  const rows = String(text).split(/\r?\n/).map(l => l.split('\t').map(c => c.trim())).filter(r => r.some(Boolean));
+  if(!rows.length) return null;
+  let col = {req:0, shoot:1, up:2, st:3, co:4, fee:5, note:9};
+  const hi = rows.findIndex(r => r.some(c => /촬영일/.test(c)));
+  if(hi >= 0){
+    const h = rows[hi], f = re => h.findIndex(c => re.test(c));
+    col = {req: f(/요청/), shoot: f(/촬영일/), up: f(/업로드/), st: f(/진행/), co: f(/업체/), fee: f(/비용/), note: f(/비고/)};
+    rows.splice(0, hi + 1);
+  }
+  const out = [];
+  rows.forEach(r => {
+    const shoot = shootDate(r[col.shoot]); if(!shoot) return;
+    let co = col.co >= 0 ? r[col.co] : '';
+    if(!co) co = r.find((c, i) => i > col.shoot && c && !shootDate(c) && !/^[\d,.\s%-]+$/.test(c) && !/^(완료|진행|예정|취소|O|X)$/i.test(c)) || '';
+    if(!co) return;
+    if(col.st >= 0 && /취소/.test(r[col.st] || '')) return;
+    const fee = col.fee >= 0 ? parseInt(String(r[col.fee] || '').replace(/[^\d]/g, ''), 10) || 0 : 0;
+    out.push({co, shoot, up: col.up >= 0 ? shootDate(r[col.up]) : null, fee, req: col.req >= 0 ? shootDate(r[col.req]) : null, note: col.note >= 0 ? (r[col.note] || '') : ''});
+  });
+  return out.length >= 1 ? out : null;
+}
+function onAskPaste(e){
+  const t = (e.clipboardData || window.clipboardData).getData('text');
+  if(!/\t/.test(t) || !/\d{4}[.\-\/]\d{1,2}[.\-\/]\d{1,2}/.test(t)) return; // 엑셀 표가 아니면 그냥 붙여넣기
+  const rows = parseShootRows(t); if(!rows) return;
+  e.preventDefault();
+  PENDING = {kind:'shoots', rows, withUp: false}; showPreview(false);
+}
+function shootEventsOf(p){
+  const ev = [], seen = {};
+  p.rows.forEach(r => {
+    // 같은 예약을 알아보는 열쇠 = 업체 + 요청일 + 그 조합의 몇 번째 줄(강원아트집처럼 한 날 여러 건 요청해도 구분, 촬영일이 바뀌어도 같은 건)
+    const base = r.co + '|' + (r.req || r.shoot); seen[base] = (seen[base] || 0) + 1; const key = base + '|' + seen[base];
+    const note = [r.fee ? '비용 ' + won(r.fee) : '', r.req ? '요청 ' + r.req.slice(5).replace('-', '/') : '', r.note].filter(Boolean).join(' · ');
+    ev.push({id: 'sh-' + hashStr(key), date: r.shoot, title: '촬영 · ' + r.co, note});
+    if(p.withUp && r.up && r.up !== r.shoot) ev.push({id: 'sh-' + hashStr(key + '|up'), date: r.up, title: '업로드 · ' + r.co, note: ''});
+  });
+  return ev;
+}
 function showPreview(fromVoice){
   const p = PENDING;
   clearInterval(pvTimer);
+  if(p.kind === 'shoots'){
+    const ev = shootEventsOf(p), have = new Set(live().map(x => x.id));
+    const nNew = ev.filter(x => !have.has(x.id)).length, nUp = p.rows.filter(r => r.up && r.up !== r.shoot).length;
+    let h = '<div class="hint">엑셀에서 ' + p.rows.length + '줄 — 촬영일을 달력에 넣어요 (새로 ' + nNew + '건 · 이미 있는 건 날짜만 맞춤)</div>';
+    h += '<div style="max-height:34vh;overflow:auto">' + p.rows.map(r => '<div class="sum" style="font-size:14px"><span class="tag ev">촬영</span>' + esc(fmtDate(r.shoot) + ' · ' + r.co) + (r.fee ? ' <span class="muted">' + won(r.fee) + '</span>' : '') + (p.withUp && r.up && r.up !== r.shoot ? ' <span class="muted">· 업로드 ' + r.up.slice(5).replace('-', '/') + '</span>' : '') + '</div>').join('') + '</div>';
+    h += '<div class="row"><button class="btn pri" onclick="confirmPending()">' + ev.length + '건 넣기</button>'
+       + (nUp ? '<label style="display:flex;gap:6px;align-items:center;font-size:14px"><input type="checkbox" style="width:auto"' + (p.withUp ? ' checked' : '') + ' onchange="PENDING.withUp=this.checked;showPreview(false)">업로드일도</label>' : '')
+       + '<button class="btn sec" onclick="cancelPending()">취소</button></div>';
+    document.getElementById('pvBox').innerHTML = h;
+    document.getElementById('preview').classList.add('show');
+    return;
+  }
   if(p.kind === 'multi'){
     let h = '<div class="hint">날짜가 ' + p.items.length + '개라 나눠서 넣을게요</div>';
     p.items.forEach(x => h += '<div class="sum"><span class="tag ev">일정</span>' + esc(pvSummary(x)) + '</div>');
@@ -1711,6 +1770,14 @@ function pendingEdit(forceKind){
 function confirmPending(){
   clearInterval(pvTimer);
   const p = PENDING; if(!p) return;
+  if(p.kind === 'shoots'){
+    // 같은 예약은 같은 번호(id)라 다시 붙여넣어도 겹치지 않고 촬영일·비용만 새로 맞춰짐
+    const ev = shootEventsOf(p);
+    ev.forEach(e => { const x = DB.items.find(i => i.id === e.id) || {id: e.id, type: 'event', time: null}; delete x.deleted; Object.assign(x, {type: 'event', date: e.date, title: e.title, note: e.note, src: 'xlsx'}); upsert(x); });
+    toast('촬영 일정 ' + ev.length + '건 넣었어요');
+    cancelPending(true);
+    return;
+  }
   if(p.kind === 'multi'){
     p.items.forEach(x => upsert({id: uid(), type:'event', date: x.date, time: x.time || null, title: x.title, note: x.end ? '~' + fmtTime(x.end) + '까지' : '', src: 'ask', repeat: x.repeat || null}));
     selectDate(p.items[0].date); if(TAB !== 'cal') showTab('cal');
