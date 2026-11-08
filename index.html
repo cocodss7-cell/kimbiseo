@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10.14-shoot-color">
+<meta name="app-build-version" content="v10.15-mac-install">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10.14-shoot-color';</script>
+<script>window.APP_BUILD = 'v10.15-mac-install';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -1350,6 +1350,7 @@ function installHow(){
   const ua = navigator.userAgent;
   if(/iPhone|iPad|iPod/.test(ua)) return '사파리 아래 [공유] 버튼 → [홈 화면에 추가]';
   if(/Android/.test(ua)) return '크롬 오른쪽 위 ⋮ 메뉴 → [앱 설치] 또는 [홈 화면에 추가]';
+  if(/Macintosh/.test(ua) && /Safari/.test(ua) && !/Chrome|Chromium|Edg\//.test(ua)) return '맥 사파리 맨 위 메뉴 [파일] → [Dock에 추가] (macOS Sonoma 이상) — 안 보이면 크롬으로 열어 주소창 오른쪽 설치 아이콘';
   return '크롬·엣지 주소창 오른쪽의 설치 아이콘(모니터+화살표) 또는 ⋮ 메뉴 → [김비서 설치]';
 }
 async function installApp(){
