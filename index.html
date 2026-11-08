@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10.15-mac-install">
+<meta name="app-build-version" content="v10.16-ad-mark">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10.15-mac-install';</script>
+<script>window.APP_BUILD = 'v10.16-ad-mark';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -1245,6 +1245,7 @@ function editEvent(id, date){
     + '<div class="row"><div class="field" style="flex:1"><label>날짜</label><input type="date" id="f_date" value="' + esc(x.date) + '"></div>'
     + '<div class="field" style="flex:1"><label>시간 (비우면 종일)</label><input type="time" id="f_time" value="' + esc(x.time || '') + '"></div></div>'
     + '<div class="field"><label>내 휴가</label><select id="f_leave"><option value="">휴가 아님</option>' + Object.entries(LEAVE_NAME).map(([k, l]) => '<option value="' + k + '"' + (x.leave === k ? ' selected' : '') + '>' + l + ' (' + LEAVE_DAYS[k] + '일)</option>').join('') + '</select></div>'
+    + '<label style="display:flex;gap:8px;align-items:center;font-size:14px;margin:-2px 0 12px;font-weight:600"><input type="checkbox" id="f_ad" style="width:auto"' + (evCls(x) === 'sh' ? ' checked' : '') + '><i class="dot sh"></i>광고·촬영 (보라색)</label>'
     + '<div class="field"><label>반복</label><select id="f_repeat"><option value="">반복 없음</option><option value="monthly"' + (x.repeat === 'monthly' ? ' selected' : '') + '>매월 같은 날</option></select></div>'
     + '<div class="field"><label>메모</label><textarea id="f_note" placeholder="장소·준비물 등">' + esc(x.note || '') + '</textarea></div>'
     + '<div class="row" style="justify-content:space-between;margin-top:6px">'
@@ -1256,7 +1257,7 @@ function saveEvent(id){
   const title = val('f_title'), date = val('f_date');
   if(!title || !date){ toast('제목과 날짜를 넣어 주세요'); return; }
   const x = id ? DB.items.find(i => i.id === id) : {id: uid(), type:'event'};
-  Object.assign(x, {title, date, time: val('f_time') || null, note: val('f_note'), repeat: val('f_repeat') || null, leave: val('f_leave') || null});
+  Object.assign(x, {title, date, time: val('f_time') || null, note: val('f_note'), repeat: val('f_repeat') || null, leave: val('f_leave') || null, ad: !!(document.getElementById('f_ad') || {}).checked});
   upsert(x); closeModal(); toast('저장했어요');
 }
 function editMemo(id, date){
@@ -1673,7 +1674,7 @@ function onAskPaste(e){
   e.preventDefault();
   PENDING = {kind:'shoots', rows, withUp: false}; showPreview(false);
 }
-function evCls(x){ return x.leave ? 'lv' : (x.src === 'xlsx' || String(x.id || '').indexOf('sh-') === 0) ? 'sh' : 'ev'; }
+function evCls(x){ return x.leave ? 'lv' : x.ad === true ? 'sh' : x.ad === false ? 'ev' : (x.src === 'xlsx' || String(x.id || '').indexOf('sh-') === 0) ? 'sh' : 'ev'; }
 function shootEventsOf(p){
   const ev = [], seen = {};
   p.rows.forEach(r => {
