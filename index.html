@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10.16-ad-mark">
+<meta name="app-build-version" content="v10.17-shoot-keep">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10.16-ad-mark';</script>
+<script>window.APP_BUILD = 'v10.17-shoot-keep';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -1777,7 +1777,17 @@ function confirmPending(){
   if(p.kind === 'shoots'){
     // 같은 예약은 같은 번호(id)라 다시 붙여넣어도 겹치지 않고 촬영일·비용만 새로 맞춰짐
     const ev = shootEventsOf(p);
-    ev.forEach(e => { const x = DB.items.find(i => i.id === e.id) || {id: e.id, type: 'event', time: null}; delete x.deleted; Object.assign(x, {type: 'event', date: e.date, title: e.title, note: e.note, src: 'xlsx'}); upsert(x); });
+    ev.forEach(e => {
+      const x = DB.items.find(i => i.id === e.id) || {id: e.id, type: 'event', time: null}; delete x.deleted;
+      // 앱에서 고친 건 지키기: 시간·광고 표시는 건드리지 않음, 제목은 앱에서 바꿨으면 유지, 메모는 엑셀 줄만 바꾸고 덧붙인 내용 유지
+      const title = (!x.title || x.title === (x.xTitle || e.title)) ? e.title : x.title;
+      let extra = String(x.note || '');
+      if(x.xNote != null){ if(extra.indexOf(x.xNote) === 0) extra = extra.slice(x.xNote.length); }
+      else if(x.src === 'xlsx') extra = /^(비용|요청) /.test(extra) ? extra.replace(/^[^\n]*/, '') : extra; // v10.17 전에 넣은 건: 첫 줄이 엑셀 줄
+      extra = extra.replace(/^\n+/, '');
+      const note = e.note + (extra ? (e.note ? '\n' : '') + extra : '');
+      Object.assign(x, {type: 'event', date: e.date, title, note, src: 'xlsx', xTitle: e.title, xNote: e.note}); upsert(x);
+    });
     toast('촬영 일정 ' + ev.length + '건 넣었어요');
     cancelPending(true);
     return;
