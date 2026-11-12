@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10.17-shoot-keep">
+<meta name="app-build-version" content="v10.18-shoot-match">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10.17-shoot-keep';</script>
+<script>window.APP_BUILD = 'v10.18-shoot-match';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -1676,10 +1676,33 @@ function onAskPaste(e){
 }
 function evCls(x){ return x.leave ? 'lv' : x.ad === true ? 'sh' : x.ad === false ? 'ev' : (x.src === 'xlsx' || String(x.id || '').indexOf('sh-') === 0) ? 'sh' : 'ev'; }
 function shootEventsOf(p){
-  const ev = [], seen = {};
+  const ev = [], groups = {};
+  // 같은 예약을 알아보는 열쇠 = 업체 + 요청일 + 번호(강원아트집처럼 한 날 여러 건 요청해도 구분, 촬영일이 바뀌어도 같은 건).
+  // v10.18: 번호를 줄 순서로 매기면 위쪽 줄을 빼고 복사했을 때 번호가 밀려 엉뚱한 일정이 옮겨짐 →
+  // 이미 있는 같은 업체·요청일 일정 중 촬영일이 같은 것을 먼저 짝짓고, 남은 줄은 남은 기존 일정(날짜순), 그다음 새 번호.
+  p.rows.forEach(r => { const base = r.co + '|' + (r.req || r.shoot); (groups[base] = groups[base] || []).push(r); });
+  const keyOf = new Map();
+  Object.entries(groups).forEach(([base, rs]) => {
+    const exist = [];
+    for(let k = 1; k <= rs.length + 30; k++){ const it = DB.items.find(i => i.id === 'sh-' + hashStr(base + '|' + k)); if(it) exist.push({k, it}); }
+    const free = exist.slice(), todo = [];
+    rs.forEach(r => { let i = free.findIndex(e => e.it.date === r.shoot && !e.it.deleted); if(i < 0) i = free.findIndex(e => e.it.date === r.shoot);
+      if(i >= 0){ keyOf.set(r, base + '|' + free[i].k); free.splice(i, 1); } else todo.push(r); });
+    // 남은 줄 = 촬영일이 바뀐 줄 또는 새 줄. 이 업체·요청일 줄을 다 붙여넣었으면 남은 기존 일정과 날짜순으로 짝짓고,
+    // 일부만 붙여넣었으면(위쪽 줄을 빼고 복사) 빠진 줄 일정일 수 있어 14일 안의 가장 가까운 것만 짝지음. 나머지는 새 번호.
+    const liveFree = free.filter(e => !e.it.deleted).sort((a, b) => String(a.it.date).localeCompare(String(b.it.date)));
+    const full = rs.length >= exist.filter(e => !e.it.deleted).length;
+    todo.slice().sort((a, b) => a.shoot.localeCompare(b.shoot)).forEach(r => {
+      let bi = -1;
+      if(full) bi = liveFree.length ? 0 : -1;
+      else { let bd = 15; liveFree.forEach((e, i) => { const d = Math.abs((parseYmd(e.it.date) - parseYmd(r.shoot)) / 864e5); if(d < bd){ bd = d; bi = i; } }); }
+      if(bi >= 0){ keyOf.set(r, base + '|' + liveFree[bi].k); liveFree.splice(bi, 1); return; }
+      const used = new Set(exist.map(e => e.k)); [...keyOf.values()].forEach(v => { if(v.indexOf(base + '|') === 0) used.add(+v.slice(base.length + 1)); });
+      let k = 1; while(used.has(k)) k++; keyOf.set(r, base + '|' + k);
+    });
+  });
   p.rows.forEach(r => {
-    // 같은 예약을 알아보는 열쇠 = 업체 + 요청일 + 그 조합의 몇 번째 줄(강원아트집처럼 한 날 여러 건 요청해도 구분, 촬영일이 바뀌어도 같은 건)
-    const base = r.co + '|' + (r.req || r.shoot); seen[base] = (seen[base] || 0) + 1; const key = base + '|' + seen[base];
+    const key = keyOf.get(r);
     const note = [r.fee ? '비용 ' + won(r.fee) : '', r.req ? '요청 ' + r.req.slice(5).replace('-', '/') : '', r.note].filter(Boolean).join(' · ');
     ev.push({id: 'sh-' + hashStr(key), date: r.shoot, title: '촬영 · ' + r.co, note});
     if(p.withUp && r.up && r.up !== r.shoot) ev.push({id: 'sh-' + hashStr(key + '|up'), date: r.up, title: '업로드 · ' + r.co, note: ''});
