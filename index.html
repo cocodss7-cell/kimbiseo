@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10.19-enter-key">
+<meta name="app-build-version" content="v10.20-multiline">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10.19-enter-key';</script>
+<script>window.APP_BUILD = 'v10.20-multiline';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -182,6 +182,8 @@ mark{background:var(--yellow);color:#000;border-radius:3px;padding:0 1px}
 .ask{position:fixed;left:0;right:0;bottom:calc(60px + env(safe-area-inset-bottom));z-index:30;padding:8px 12px;background:linear-gradient(to top,var(--bg) 65%,transparent)}
 .ask-in{max-width:1200px;margin:0 auto;display:flex;gap:6px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:6px 6px 6px 14px;box-shadow:0 6px 20px rgba(16,24,20,.10)}
 .ask-in input{border:0;padding:8px 0;background:transparent;flex:1;min-width:0}
+.ask-in textarea{border:0;padding:8px 0;background:transparent;flex:1;min-width:0;min-height:0;resize:none;line-height:1.45;max-height:32vh;overflow-y:auto;border-radius:0;display:block}
+.ask-in{align-items:flex-end}
 .mic{flex:none;width:42px;height:42px;border-radius:12px;border:0;background:var(--cell);display:inline-flex;align-items:center;justify-content:center;color:var(--text)}
 .mic.on{background:var(--orange);color:#fff;animation:pulse 1s infinite}
 @keyframes pulse{50%{transform:scale(1.07)}}
@@ -296,7 +298,7 @@ body.mini{padding-bottom:96px}
 <!-- 입력바 -->
 <div class="ask">
   <form class="ask-in" onsubmit="event.preventDefault();askSubmit();">
-    <input id="askInput" autocomplete="off" enterkeyhint="go" placeholder="10월 16일 18시 면접 넣어줘" oninput="saveAskDraft()" onpaste="onAskPaste(event)" onkeydown="askKey(event)">
+    <textarea id="askInput" rows="1" autocomplete="off" enterkeyhint="enter" placeholder="10월 16일 18시 면접 넣어줘" oninput="saveAskDraft();askAutoSize()" onpaste="onAskPaste(event)" onkeydown="askKey(event)"></textarea>
     <button type="button" class="mic" id="micBtn" onclick="toggleMic()" aria-label="음성 입력"><svg class="ico" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
     <button type="submit" class="send">입력</button>
   </form>
@@ -1448,8 +1450,10 @@ function fromAi(a, raw){
 }
 async function onAsk(fromVoice){
   const inp = document.getElementById('askInput');
-  const text = inp.value.trim(); if(!text) return;
-  pvText = text;
+  const full = inp.value.trim(); if(!full) return;
+  pvText = full;
+  // v10.20: 여러 줄이면 첫 줄만 해석(날짜·시간·종류), 나머지 줄은 그대로 일정 메모 / 메모 본문 뒤에 붙임
+  const nl = full.indexOf('\n'), text = nl >= 0 ? full.slice(0, nl).trim() : full, extra = nl >= 0 ? full.slice(nl + 1).trim() : '';
   const seq = ++askSeq;
   clearInterval(pvTimer);
   let p = null;
@@ -1468,7 +1472,7 @@ async function onAsk(fromVoice){
   const dq = ddQuestion(text);
   if(dq){ answerDdq(dq, fromVoice); inp.value = ''; saveAskDraft(); return; }
   const multi = splitMulti(text);
-  if(multi){ PENDING = {kind:'multi', items: multi, raw: text}; showPreview(fromVoice); return; }
+  if(multi){ PENDING = {kind:'multi', items: multi, raw: text, extra}; showPreview(fromVoice); return; }
   if(SESSION && navigator.onLine){
     document.getElementById('pvBox').innerHTML = '<div class="sum">' + esc(text) + '</div><div class="muted">알아듣는 중…</div><div class="row"><button class="btn sec" onclick="cancelPending()">취소</button></div>';
     document.getElementById('preview').classList.add('show');
@@ -1484,6 +1488,7 @@ async function onAsk(fromVoice){
     answerFind(p.query, text, fromVoice);
     return;
   }
+  if(extra) p.extra = extra;
   PENDING = p; showPreview(fromVoice);
 }
 // D-day 계산 질문: "기주 50일이 언제지", "기주 백일 언제야", "사귄 날 2주년 언제", "기주 돌 언제야", "기주 며칠째야"
@@ -1742,6 +1747,7 @@ function showPreview(fromVoice){
   const tag = {event:'<span class="tag ev">일정</span>', memo:'<span class="tag memo">메모</span>', dday:'<span class="tag dd">D-day</span>', gift:'<span class="tag dd">경조사</span>'}[p.kind];
   let h = '<div class="sum">' + tag + esc(pvSummary(p)) + '</div>';
   if(p.notes && p.notes.length) h += '<div class="hint">' + esc(p.notes.join(' · ')) + '</div>';
+  if(p.extra) h += '<div class="muted" style="white-space:pre-wrap;margin:-2px 0 8px;max-height:20vh;overflow:auto">' + esc(p.extra) + '</div>';
   h += '<div class="row"><button class="btn pri" id="pvSave" onclick="confirmPending()">저장</button>'
      + (p.kind === 'event' ? '<button class="btn sec" onclick="pendingAs(\'memo\')">메모로</button>' : p.kind === 'memo' ? '<button class="btn sec" onclick="pendingAs(\'event\')">일정으로</button>' : '')
      + '<button class="btn sec" onclick="pendingEdit()">고치기</button>'
@@ -1764,10 +1770,10 @@ function showPreview(fromVoice){
 function pendingAs(kind){
   clearInterval(pvTimer);
   const p = PENDING; if(!p) return;
-  if(kind === 'memo') PENDING = {kind:'memo', text: p.title || p.text, date: p.date || null, notes: []};
+  if(kind === 'memo') PENDING = {kind:'memo', text: p.title || p.text, date: p.date || null, notes: [], extra: p.extra};
   else{
     if(!p.date){ PENDING = p; pendingEdit('event'); return; }
-    PENDING = {kind:'event', date: p.date, time: null, title: p.text, notes: []};
+    PENDING = {kind:'event', date: p.date, time: null, title: p.text, notes: [], extra: p.extra};
   }
   showPreview(false);
 }
@@ -1789,9 +1795,10 @@ function pendingEdit(forceKind){
     editEvent(null, p.date || selDate);
     document.getElementById('f_title').value = p.title || p.text || '';
     if(p.time) document.getElementById('f_time').value = p.time;
+    if(p.extra) document.getElementById('f_note').value = p.extra;
   } else {
     editMemo(null, p.date);
-    document.getElementById('f_text').value = p.text;
+    document.getElementById('f_text').value = (p.text || '') + (p.extra ? '\n' + p.extra : '');
   }
 }
 function confirmPending(){
@@ -1816,7 +1823,7 @@ function confirmPending(){
     return;
   }
   if(p.kind === 'multi'){
-    p.items.forEach(x => upsert({id: uid(), type:'event', date: x.date, time: x.time || null, title: x.title, note: x.end ? '~' + fmtTime(x.end) + '까지' : '', src: 'ask', repeat: x.repeat || null}));
+    p.items.forEach((x, i) => upsert({id: uid(), type:'event', date: x.date, time: x.time || null, title: x.title, note: [x.end ? '~' + fmtTime(x.end) + '까지' : '', i === 0 ? p.extra || '' : ''].filter(Boolean).join('\n'), src: 'ask', repeat: x.repeat || null}));
     selectDate(p.items[0].date); if(TAB !== 'cal') showTab('cal');
     toast(p.items.length + '건 저장했어요 · ' + p.items.map(x => fmtDate(x.date).replace(/ \(.\)/, '') + ' ' + x.title).join(', '));
     cancelPending(true);
@@ -1825,14 +1832,14 @@ function confirmPending(){
   if(p.kind === 'gift'){
     upsert({id: uid(), type:'gift', dir: p.dir, nm: p.nm, a: p.a, ev: p.ev, d: p.date, rel:'', grp:'', memo:'', src:'ask'});
   } else if(p.kind === 'event'){
-    upsert({id: uid(), type:'event', date: p.date, time: p.time || null, title: p.title, note: p.end ? '~' + fmtTime(p.end) + '까지' : '', src: 'ask', repeat: p.repeat || null, leave: p.leave || null});
+    upsert({id: uid(), type:'event', date: p.date, time: p.time || null, title: p.title, note: [p.end ? '~' + fmtTime(p.end) + '까지' : '', p.extra || ''].filter(Boolean).join('\n'), src: 'ask', repeat: p.repeat || null, leave: p.leave || null});
     selectDate(p.date);
     if(TAB !== 'cal') showTab('cal');
   } else if(p.kind === 'dday'){
     upsert({id: uid(), type:'dday', title: p.title, date: p.date, kind: p.ddKind || 'since', lunar: !!p.lunar, noYear: !!p.noYear, src: 'ask'});
     if(TAB !== 'dday') showTab('dday');
   } else {
-    upsert({id: uid(), type:'memo', text: p.text, date: p.date || null, done: false, src: 'ask'});
+    upsert({id: uid(), type:'memo', text: p.text + (p.extra ? '\n' + p.extra : ''), date: p.date || null, done: false, src: 'ask'});
   }
   toast('저장했어요 · ' + pvSummary(p));
   cancelPending(true);
@@ -1840,8 +1847,19 @@ function confirmPending(){
 // 입력칸 Enter: 미리보기가 떠 있고 글자를 안 바꿨으면 바로 저장, 아니면 새로 해석
 // v10.19: 폰 키보드 엔터(이동·완료)로도 확실히 — 한글 조합 중 엔터(keyCode 229·isComposing)도 받고, keydown·form 제출이 겹쳐 두 번 실행되지 않게 0.4초 막음
 let askSubmitAt = 0;
+// v10.20: 입력칸 = 여러 줄(textarea). 폰(터치)은 키보드 ↵ = 줄바꿈, 저장은 [입력] 버튼 / PC는 Enter = 미리보기·저장, Shift+Enter = 줄바꿈
+const ASK_TOUCH = (() => { try{ return matchMedia('(pointer: coarse)').matches; }catch(e){ return false; } })();
+function askAutoSize(){
+  const t = document.getElementById('askInput'); if(!t) return;
+  t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, innerHeight * 0.32) + 'px';
+}
+(function(){ // 음성·초안 복원·비우기 등 코드로 값을 넣을 때도 높이 맞춤
+  const t = document.getElementById('askInput'), d = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value');
+  if(t && d) Object.defineProperty(t, 'value', {get(){ return d.get.call(this); }, set(v){ d.set.call(this, v); requestAnimationFrame(askAutoSize); }, configurable: true});
+})();
 function askKey(e){
   if(e.key !== 'Enter' && e.keyCode !== 13) return;
+  if(ASK_TOUCH || e.shiftKey) return; // 줄바꿈
   e.preventDefault();
   // 조합 중이면 글자가 확정된 뒤(다음 틱) 제출
   setTimeout(askSubmit, e.isComposing || e.keyCode === 229 ? 30 : 0);
@@ -1849,7 +1867,7 @@ function askKey(e){
 function askEnterHint(){
   const inp = document.getElementById('askInput'); if(!inp) return;
   const pv = PENDING && document.getElementById('preview').classList.contains('show');
-  inp.setAttribute('enterkeyhint', pv ? 'done' : 'go');
+  inp.setAttribute('enterkeyhint', ASK_TOUCH ? 'enter' : pv ? 'done' : 'go');
 }
 function askSubmit(){
   if(Date.now() - askSubmitAt < 400) return; askSubmitAt = Date.now();
