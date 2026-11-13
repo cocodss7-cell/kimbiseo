@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10.18-shoot-match">
+<meta name="app-build-version" content="v10.19-enter-key">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10.18-shoot-match';</script>
+<script>window.APP_BUILD = 'v10.19-enter-key';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -296,7 +296,7 @@ body.mini{padding-bottom:96px}
 <!-- 입력바 -->
 <div class="ask">
   <form class="ask-in" onsubmit="event.preventDefault();askSubmit();">
-    <input id="askInput" autocomplete="off" placeholder="10월 16일 18시 면접 넣어줘" oninput="saveAskDraft()" onpaste="onAskPaste(event)">
+    <input id="askInput" autocomplete="off" enterkeyhint="go" placeholder="10월 16일 18시 면접 넣어줘" oninput="saveAskDraft()" onpaste="onAskPaste(event)" onkeydown="askKey(event)">
     <button type="button" class="mic" id="micBtn" onclick="toggleMic()" aria-label="음성 입력"><svg class="ico" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
     <button type="submit" class="send">입력</button>
   </form>
@@ -1838,11 +1838,26 @@ function confirmPending(){
   cancelPending(true);
 }
 // 입력칸 Enter: 미리보기가 떠 있고 글자를 안 바꿨으면 바로 저장, 아니면 새로 해석
+// v10.19: 폰 키보드 엔터(이동·완료)로도 확실히 — 한글 조합 중 엔터(keyCode 229·isComposing)도 받고, keydown·form 제출이 겹쳐 두 번 실행되지 않게 0.4초 막음
+let askSubmitAt = 0;
+function askKey(e){
+  if(e.key !== 'Enter' && e.keyCode !== 13) return;
+  e.preventDefault();
+  // 조합 중이면 글자가 확정된 뒤(다음 틱) 제출
+  setTimeout(askSubmit, e.isComposing || e.keyCode === 229 ? 30 : 0);
+}
+function askEnterHint(){
+  const inp = document.getElementById('askInput'); if(!inp) return;
+  const pv = PENDING && document.getElementById('preview').classList.contains('show');
+  inp.setAttribute('enterkeyhint', pv ? 'done' : 'go');
+}
 function askSubmit(){
+  if(Date.now() - askSubmitAt < 400) return; askSubmitAt = Date.now();
   const t = document.getElementById('askInput').value.trim();
   if(PENDING && document.getElementById('preview').classList.contains('show') && (t === '' || t === pvText)){ confirmPending(); return; }
   onAsk();
 }
+try{ new MutationObserver(askEnterHint).observe(document.getElementById('preview'), {attributes:true, attributeFilter:['class']}); }catch(e){}
 function cancelPending(silent){
   clearInterval(pvTimer);
   askSeq++;
