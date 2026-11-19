@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10.21-shoot-dup">
+<meta name="app-build-version" content="v10.22-year">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10.21-shoot-dup';</script>
+<script>window.APP_BUILD = 'v10.22-year';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -115,6 +115,13 @@ textarea{resize:vertical;min-height:90px;line-height:1.5}
 .pill.memo{background:var(--mm-bg);color:var(--mm-tx)}
 .pill.dd{background:var(--dd-bg);color:var(--dd-tx)}
 .pill.lv{background:var(--lv-bg);color:var(--lv-tx)} .dot.lv{background:var(--lv-dot)} .tag.lv{background:var(--lv-bg);color:var(--lv-tx)}
+.yr-row{display:flex;gap:10px;align-items:flex-start;padding:7px 2px;border-bottom:1px solid var(--line);cursor:pointer;font-size:14px}
+.yr-d{color:var(--sub);font-variant-numeric:tabular-nums;white-space:nowrap;min-width:40px}
+.yr-t{flex:1;min-width:0;word-break:break-all}
+.yr-sel{width:auto;max-width:44%;padding:4px 6px;font-size:13px}
+.yr-m{font-size:12px;font-weight:800;color:var(--sub);margin:10px 0 2px}
+.yr-grp{border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin-bottom:8px}
+.yr-grp summary{cursor:pointer;padding:4px 0}
 .pill.sh{background:var(--sh-bg);color:var(--sh-tx)} .dot.sh{background:var(--sh-dot)} .tag.sh{background:var(--sh-bg);color:var(--sh-tx)}
 .cell .more{font-size:11px;color:var(--sub);margin-top:3px;padding-left:2px}
 @media (max-width:640px){
@@ -1004,8 +1011,8 @@ const gifts = () => live().filter(x => x.type === 'gift');
 const refs  = () => live().filter(x => x.type === 'ref').sort((a, b) => (a.ord || 0) - (b.ord || 0));
 const links = () => live().filter(x => x.type === 'link').sort((a, b) => (a.created || 0) - (b.created || 0));
 function renderMore(){
-  const subs = [['gift','경조사 장부'],['ref','회사 규정'],['link','바로가기']];
-  let h = '<div class="panel">' + panelHead('서랍', '경조사 장부 · 회사 규정 · 자주 가는 곳')
+  const subs = [['gift','경조사 장부'],['ref','회사 규정'],['year','연간 정리'],['link','바로가기']];
+  let h = '<div class="panel">' + panelHead('서랍', '경조사 장부 · 회사 규정 · 연간 정리 · 자주 가는 곳')
     + '<div class="seg" style="margin-bottom:14px">' + subs.map(([k, l]) => '<button class="' + (moreSub === k ? 'on' : '') + '" onclick="moreSub=\'' + k + '\';renderMore()">' + l + '</button>').join('') + '</div>';
   if(moreSub === 'gift') h += '<div class="row" style="flex-wrap:nowrap;margin-bottom:10px"><div class="search" style="flex:1;margin:0">' + IC.search + '<input id="giftInput" placeholder="이름·관계·메모로 찾기" value="' + esc(giftQ) + '" oninput="giftQ=this.value;renderDrawerBody()"></div><button class="btn pri" onclick="editGift(null)">+ 기록</button></div>'
     + '<div class="seg" style="margin-bottom:12px">' + [['name','이름순'],['in','받은 순'],['out','낸 순'],['recent','최근']].map(([k, l]) => '<button class="' + (giftSort === k ? 'on' : '') + '" onclick="giftSort=\'' + k + '\';renderMore()">' + l + '</button>').join('') + '</div>';
@@ -1027,7 +1034,93 @@ function renderDrawerBody(){
   const box = document.getElementById('drawerBody'); if(!box) return;
   if(moreSub === 'gift') box.innerHTML = giftListHtml();
   else if(moreSub === 'ref'){ box.innerHTML = refListHtml(); calcLeave(); }
+  else if(moreSub === 'year') box.innerHTML = yearHtml();
   else box.innerHTML = linkListHtml();
+}
+// ---------- 연간 정리 (v10.22) — 1년 일정을 회사(분야별)·내 사업·개인으로 나눠 보고서 쓰기 좋게 ----------
+const CLS = [
+  ['c:생산','회사','생산·공정'], ['c:시설','회사','시설·설비'], ['c:구매','회사','구매·원가·물류'], ['c:영업','회사','영업·거래처'],
+  ['c:대외','회사','인증·대외·지원사업'], ['c:인사','회사','인사·채용·교육'], ['c:자금','회사','자금·재무·법무'], ['c:환경','회사','환경·안전'],
+  ['c:보고','회사','보고·회의'], ['c:기타','회사','기타'], ['s:식용유니버스','내 사업','식용유니버스'], ['s:원주교과서','내 사업','원주교과서'], ['p','개인','개인·가족']];
+const CLS_MAP = Object.fromEntries(CLS.map(c => [c[0], c]));
+function clsLabel(k){ const c = CLS_MAP[k]; return !c ? '미분류' : c[0] === 'p' ? '개인' : c[1] + ' · ' + c[2]; }
+function clsOptions(sel){ return '<option value="">미분류</option>' + CLS.map(c => '<option value="' + c[0] + '"' + (sel === c[0] ? ' selected' : '') + '>' + esc(clsLabel(c[0])) + '</option>').join(''); }
+// 미분류 일정 추천(낱말 규칙) — 맞히는 비율보다 '틀리면 고치기 쉬움'이 목적, 저장은 사장님이 확인 후
+const CLS_RULES = [
+  [/폐식용유|식용유니버스|하이브오일|hiveoil|폐유\s*(수거|출고)|강동바이오|납품.*개/i, 's:식용유니버스'],
+  [/업로드|업로|원주교과서|인스타|광고|축제|페스티벌|촬영\s*·/, 's:원주교과서'],
+  [/병원|생일|생신|결혼|장례|장모|장인|엄마|아빠|희진|여보|기주|조리원|어린이집|미용실|눈썹|염색|산부인과|집들이|전세|월세|잔금|만삭|육휴|돌잔치|백일/, 'p'],
+  [/유해화학|화관법|폐기물|폐수|수질|환경청|환경기술|작업환경|가스안전|가스교육|소방|위험물|지게차\s*교육|안전|epr|오염원|과태료/i, 'c:환경'],
+  [/면접|입사|연차|반차|휴가|퇴사|인수인계|일학습|멘토링|당직|회식|야유회|채용|근로계약|예비군|직원\s*교육|공장장님 교육/, 'c:인사'],
+  [/대륙|두원|제관|원료|원유|카놀라|대두|해바라기|선적|물류|임가공|탱크터미널|캐닝|클라리언트|밴딩|단가|구매/, 'c:구매'],
+  [/은행|농협|보증|자금|신용평가|회계|감사|세무|등기|법무/, 'c:자금'],
+  [/삼양|비앤비|bnb|웰스토리|웰스프링|동원|대상|굿푸드|원주푸드|올바른농부|유앤아이|황금알|장원|cj|오뚜기|롯데|사조|할랄|판매|거래처/i, 'c:영업'],
+  [/정수기|누수|가설|건축|기계|탱크청소|계약전력|설비|컨테이너/, 'c:시설'],
+  [/iso|인증|중소기업|경제진흥원|대한상공|설명회|복지과|esg|지원사업/i, 'c:대외'],
+  [/생산|공정|품질|불량|포장|제균|샘플|cip|정제|가동/i, 'c:생산'],
+  [/보고|디에스|단석|주주총회|대표님|\bds/i, 'c:보고']];
+function guessCls(x){
+  if(x.leave) return 'p';
+  if(x.src === 'xlsx' || String(x.id || '').indexOf('sh-') === 0 || x.ad) return 's:원주교과서';
+  const t = (x.title || '') + ' ' + (x.note || '');
+  for(const [re, k] of CLS_RULES) if(re.test(t)) return k;
+  return '';
+}
+let yrY = new Date().getFullYear(), yrF = 'c';
+function yearItems(){ const y = String(yrY); return live().filter(x => x.type === 'event' && String(x.date || '').slice(0, 4) === y).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || ''))); }
+function yrLine(x, opt){
+  const d = x.date.slice(5).replace('-', '/');
+  return '<div class="yr-row" onclick="editEvent(\'' + x.id + '\')"><span class="yr-d">' + d + '</span><span class="yr-t">' + (x.time ? '<span class="muted">' + esc(shortTime(x.time)) + '</span> ' : '') + esc(x.title) + (x.note && opt && opt.note ? '<span class="muted"> — ' + esc(String(x.note).split('\n')[0]).slice(0, 80) + '</span>' : '') + '</span></div>';
+}
+function yearHtml(){
+  const all = yearItems(), grp = k => k[0] === 'c' ? 'c' : k[0] === 's' ? 's' : k === 'p' ? 'p' : 'u';
+  const cnt = {c:0, s:0, p:0, u:0}; all.forEach(x => cnt[grp(x.cls || '')]++);
+  const unc = all.filter(x => !x.cls), sug = unc.filter(x => guessCls(x));
+  let h = '<div class="row" style="justify-content:space-between;margin-bottom:10px"><div class="row" style="gap:6px"><button class="icon-btn" onclick="yrY--;renderDrawerBody()" aria-label="이전 해">' + IC.left + '</button><b style="font-size:18px">' + yrY + '년</b><button class="icon-btn" onclick="yrY++;renderDrawerBody()" aria-label="다음 해">' + IC.right + '</button></div>'
+    + '<span class="muted">일정 ' + all.length + '건</span></div>';
+  h += '<div class="chips" style="margin-bottom:10px">' + [['c','회사'],['s','내 사업'],['p','개인'],['u','미분류']].map(([k, l]) => '<button class="chip' + (yrF === k ? ' on' : '') + '" onclick="yrF=\'' + k + '\';renderDrawerBody()">' + l + ' ' + cnt[k] + '</button>').join('') + '</div>';
+  if(yrF === 'u'){
+    if(!unc.length) return h + '<div class="muted">미분류 일정이 없어요.</div>';
+    if(sug.length) h += '<div class="refcard" style="margin-bottom:10px"><div class="row" style="justify-content:space-between"><span>낱말로 추천한 분류 <b>' + sug.length + '건</b> — 아래에서 확인 후</span><button class="btn pri sm" onclick="yrApplyGuess()">추천대로 분류</button></div></div>';
+    h += '<div class="muted" style="margin-bottom:6px">한 줄씩 골라도 돼요. 추천이 틀리면 그 줄만 바꾸고 [추천대로 분류].</div>';
+    return h + unc.map(x => { const g = guessCls(x);
+      return '<div class="yr-row" style="cursor:default"><span class="yr-d">' + x.date.slice(5).replace('-', '/') + '</span><span class="yr-t" onclick="editEvent(\'' + x.id + '\')" style="cursor:pointer">' + esc(x.title) + (g ? ' <span class="muted" style="font-size:12px">추천 ' + esc(clsLabel(g)) + '</span>' : '') + '</span>'
+        + '<select class="yr-sel" onchange="setCls(\'' + x.id + '\', this.value)">' + clsOptions('') + '</select></div>'; }).join('');
+  }
+  const keys = CLS.filter(c => c[0] === 'p' ? yrF === 'p' : c[0][0] === yrF).map(c => c[0]);
+  if(yrF === 'c') h += '<div class="row" style="justify-content:flex-end;margin-bottom:8px;gap:6px"><button class="btn sec sm" onclick="yrCopy()">보고서용 복사</button></div>';
+  let any = false;
+  keys.forEach(k => {
+    const list = all.filter(x => x.cls === k); if(!list.length) return; any = true;
+    const months = [...new Set(list.map(x => +x.date.slice(5, 7)))];
+    h += '<details class="yr-grp"' + (keys.length === 1 ? ' open' : '') + '><summary><b>' + esc(CLS_MAP[k][2]) + '</b> <span class="muted">' + list.length + '건 · ' + months.length + '개월</span></summary>';
+    let m0 = 0;
+    list.forEach(x => { const m = +x.date.slice(5, 7); if(m !== m0){ h += '<div class="yr-m">' + m + '월</div>'; m0 = m; } h += yrLine(x, {note: true}); });
+    h += '</details>';
+  });
+  if(!any) h += '<div class="muted">이 분류의 일정이 없어요.' + (cnt.u ? ' [미분류 ' + cnt.u + ']에서 나눠 주세요.' : '') + '</div>';
+  return h;
+}
+function setCls(id, v){ const x = DB.items.find(i => i.id === id); if(!x) return; x.cls = v || null; upsert(x); }
+function yrApplyGuess(){
+  const list = yearItems().filter(x => !x.cls && guessCls(x)); if(!list.length) return;
+  list.forEach(x => { x.cls = guessCls(x); x.updated = Date.now(); markDirty(x.id); });
+  saveDB(); render(); syncSoon(); toast(list.length + '건 분류했어요');
+}
+function yrReportText(){
+  const all = yearItems().filter(x => String(x.cls || '').indexOf('c:') === 0);
+  let t = '[' + yrY + '년 회사 업무 정리 — 김비서 일정 ' + all.length + '건]\n';
+  CLS.filter(c => c[0].indexOf('c:') === 0).forEach(c => {
+    const list = all.filter(x => x.cls === c[0]); if(!list.length) return;
+    t += '\n■ ' + c[2] + ' (' + list.length + '건)\n';
+    list.forEach(x => t += ' - ' + x.date.slice(5).replace('-', '/') + ' ' + x.title.replace(/\s+/g, ' ') + (x.note ? ' (' + String(x.note).split('\n')[0].slice(0, 60) + ')' : '') + '\n');
+  });
+  return t;
+}
+async function yrCopy(){
+  const t = yrReportText();
+  try{ await navigator.clipboard.writeText(t); toast('복사했어요 — 보고서·메모장에 붙여넣기'); }
+  catch(e){ openModal('<h2>보고서용 정리</h2><textarea style="min-height:50vh" readonly>' + esc(t) + '</textarea><div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn sec" onclick="closeModal()">닫기</button></div>'); }
 }
 // 사람별로 묶기(이름 같으면 한 사람)
 function giftPeople(){
@@ -1248,6 +1341,7 @@ function editEvent(id, date){
     + '<div class="field" style="flex:1"><label>시간 (비우면 종일)</label><input type="time" id="f_time" value="' + esc(x.time || '') + '"></div></div>'
     + '<div class="field"><label>내 휴가</label><select id="f_leave"><option value="">휴가 아님</option>' + Object.entries(LEAVE_NAME).map(([k, l]) => '<option value="' + k + '"' + (x.leave === k ? ' selected' : '') + '>' + l + ' (' + LEAVE_DAYS[k] + '일)</option>').join('') + '</select></div>'
     + '<label style="display:flex;gap:8px;align-items:center;font-size:14px;margin:-2px 0 12px;font-weight:600"><input type="checkbox" id="f_ad" style="width:auto"' + (evCls(x) === 'sh' ? ' checked' : '') + '><i class="dot sh"></i>광고·촬영 (보라색)</label>'
+    + '<div class="field"><label>분류 (서랍 › 연간 정리)</label><select id="f_cls">' + clsOptions(x.cls || '') + '</select></div>'
     + '<div class="field"><label>반복</label><select id="f_repeat"><option value="">반복 없음</option><option value="monthly"' + (x.repeat === 'monthly' ? ' selected' : '') + '>매월 같은 날</option></select></div>'
     + '<div class="field"><label>메모</label><textarea id="f_note" placeholder="장소·준비물 등">' + esc(x.note || '') + '</textarea></div>'
     + '<div class="row" style="justify-content:space-between;margin-top:6px">'
@@ -1259,7 +1353,7 @@ function saveEvent(id){
   const title = val('f_title'), date = val('f_date');
   if(!title || !date){ toast('제목과 날짜를 넣어 주세요'); return; }
   const x = id ? DB.items.find(i => i.id === id) : {id: uid(), type:'event'};
-  Object.assign(x, {title, date, time: val('f_time') || null, note: val('f_note'), repeat: val('f_repeat') || null, leave: val('f_leave') || null, ad: !!(document.getElementById('f_ad') || {}).checked});
+  Object.assign(x, {title, date, time: val('f_time') || null, note: val('f_note'), repeat: val('f_repeat') || null, leave: val('f_leave') || null, ad: !!(document.getElementById('f_ad') || {}).checked, cls: val('f_cls') || null});
   upsert(x); closeModal(); toast('저장했어요');
 }
 function editMemo(id, date){
