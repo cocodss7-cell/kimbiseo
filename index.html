@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10.20-multiline">
+<meta name="app-build-version" content="v10.21-shoot-dup">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10.20-multiline';</script>
+<script>window.APP_BUILD = 'v10.21-shoot-dup';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -1680,6 +1680,33 @@ function onAskPaste(e){
   PENDING = {kind:'shoots', rows, withUp: false}; showPreview(false);
 }
 function evCls(x){ return x.leave ? 'lv' : x.ad === true ? 'sh' : x.ad === false ? 'ev' : (x.src === 'xlsx' || String(x.id || '').indexOf('sh-') === 0) ? 'sh' : 'ev'; }
+// v10.21: 비고 칸의 시간('17시'·'18시'·'10시 30분 미로시장'·'3시 반'·'15:30'·'17') → 'HH:MM' (오전·오후 없는 1~7시는 오후)
+function noteTime(s){
+  s = String(s || '').trim(); if(!s) return null;
+  let h = null, mi = 0, m;
+  if(m = s.match(/(\d{1,2}):(\d{2})/)){ h = +m[1]; mi = +m[2]; }
+  else if(m = s.match(/(오전|오후|저녁|밤|아침)?\s*(\d{1,2})\s*시\s*(반|(\d{1,2})\s*분)?/)){
+    h = +m[2]; mi = m[3] === '반' ? 30 : (m[4] ? +m[4] : 0);
+    if(/오후|저녁|밤/.test(m[1] || '') && h < 12) h += 12; else if(!m[1] && h >= 1 && h <= 7) h += 12;
+    if(m[1] === '오전' && h === 12) h = 0;
+  }
+  else if(m = s.match(/^(\d{1,2})$/)){ h = +m[1]; if(h >= 1 && h <= 7) h += 12; }
+  if(h == null || h > 24 || mi > 59) return null;
+  return String(h % 24).padStart(2, '0') + ':' + String(mi).padStart(2, '0');
+}
+// v10.21: 같은 날 직접 넣은 일정 중 이름에 업체 이름 앞 두 글자가 든 것('정남미ak'·'혁신 5구역 광고'·'박만배 18 30') = 같은 촬영으로 봄
+function shootDupOf(e){
+  const k = normalizeKo(e.co).slice(0, 2); if(k.length < 2) return null;
+  return live().find(x => x.type === 'event' && x.date === e.date && x.id !== e.id && x.src !== 'xlsx' && String(x.id).indexOf('sh-') !== 0 && normalizeKo(x.title).includes(k)) || null;
+}
+// 미리보기·저장 공통: 일정마다 상태(new 새로 / revive 되살림 / exists 이미 있음) + 겹치는 직접 일정
+function shootPlan(p){
+  return shootEventsOf(p).map(e => {
+    const it = DB.items.find(i => i.id === e.id);
+    const st = !it ? 'new' : it.deleted ? 'revive' : 'exists';
+    return Object.assign(e, {st, dup: st !== 'exists' && e.shoot ? shootDupOf(e) : null, cur: it && !it.deleted ? it : null});
+  });
+}
 function shootEventsOf(p){
   const ev = [], groups = {};
   // 같은 예약을 알아보는 열쇠 = 업체 + 요청일 + 번호(강원아트집처럼 한 날 여러 건 요청해도 구분, 촬영일이 바뀌어도 같은 건).
@@ -1709,8 +1736,8 @@ function shootEventsOf(p){
   p.rows.forEach(r => {
     const key = keyOf.get(r);
     const note = [r.fee ? '비용 ' + won(r.fee) : '', r.req ? '요청 ' + r.req.slice(5).replace('-', '/') : '', r.note].filter(Boolean).join(' · ');
-    ev.push({id: 'sh-' + hashStr(key), date: r.shoot, title: '촬영 · ' + r.co, note});
-    if(p.withUp && r.up && r.up !== r.shoot) ev.push({id: 'sh-' + hashStr(key + '|up'), date: r.up, title: '업로드 · ' + r.co, note: ''});
+    ev.push({id: 'sh-' + hashStr(key), date: r.shoot, title: '촬영 · ' + r.co, note, co: r.co, time: noteTime(r.note), shoot: true});
+    if(p.withUp && r.up && r.up !== r.shoot) ev.push({id: 'sh-' + hashStr(key + '|up'), date: r.up, title: '업로드 · ' + r.co, note: '', co: r.co, time: null});
   });
   return ev;
 }
@@ -1718,10 +1745,20 @@ function showPreview(fromVoice){
   const p = PENDING;
   clearInterval(pvTimer);
   if(p.kind === 'shoots'){
-    const ev = shootEventsOf(p), have = new Set(live().map(x => x.id));
-    const nNew = ev.filter(x => !have.has(x.id)).length, nUp = p.rows.filter(r => r.up && r.up !== r.shoot).length;
-    let h = '<div class="hint">엑셀에서 ' + p.rows.length + '줄 — 촬영일을 달력에 넣어요 (새로 ' + nNew + '건 · 이미 있는 건 날짜만 맞춤)</div>';
-    h += '<div style="max-height:34vh;overflow:auto">' + p.rows.map(r => '<div class="sum" style="font-size:14px"><span class="tag sh">촬영</span>' + esc(fmtDate(r.shoot) + ' · ' + r.co) + (r.fee ? ' <span class="muted">' + won(r.fee) + '</span>' : '') + (p.withUp && r.up && r.up !== r.shoot ? ' <span class="muted">· 업로드 ' + r.up.slice(5).replace('-', '/') + '</span>' : '') + '</div>').join('') + '</div>';
+    if(p.merge === undefined) p.merge = true;
+    const ev = shootPlan(p), nUp = p.rows.filter(r => r.up && r.up !== r.shoot).length;
+    const nDup = ev.filter(e => e.dup).length, nNew = ev.filter(e => e.st !== 'exists' && !(e.dup && p.merge)).length;
+    const nTime = ev.filter(e => e.time && !(e.cur && e.cur.time) && !(e.dup && p.merge)).length;
+    const badge = (t, c) => ' <span style="font-size:11px;font-weight:700;padding:1px 6px;border-radius:8px;' + c + '">' + t + '</span>';
+    let h = '<div class="hint">엑셀에서 ' + p.rows.length + '줄 — 새로 ' + nNew + '건' + (nDup ? ' · 직접 넣은 일정과 겹침 ' + nDup + '건' : '') + (nTime ? ' · 비고 시간 ' + nTime + '건' : '') + ' · 나머지는 날짜만 맞춤</div>';
+    h += '<div style="max-height:34vh;overflow:auto">' + ev.map(e => {
+      const st = e.dup ? badge(p.merge ? '겹침 → 하나로' : '겹침 → 따로 추가', 'background:#FFF1E0;color:#B45309')
+        : e.st === 'new' ? badge('새로', 'background:var(--ev-bg);color:var(--ev-tx)') : e.st === 'revive' ? badge('되살림', 'background:#FDE8E8;color:#B42318') : '';
+      const tm = e.dup && p.merge ? '' : e.time && !(e.cur && e.cur.time) ? ' <b>' + fmtTime(e.time) + '</b>' : (e.cur && e.cur.time ? ' <span class="muted">' + fmtTime(e.cur.time) + '</span>' : '');
+      return '<div class="sum" style="font-size:14px"><span class="tag sh">' + (e.shoot ? '촬영' : '업로드') + '</span>' + esc(fmtDate(e.date) + ' · ' + e.co) + tm + st
+        + (e.dup ? '<div class="muted" style="font-size:12px;margin-left:4px">같은 날 직접 넣은 일정: ' + esc((e.dup.time ? fmtTime(e.dup.time) + ' ' : '') + e.dup.title) + '</div>' : '') + '</div>';
+    }).join('') + '</div>';
+    if(nDup) h += '<label style="display:flex;gap:6px;align-items:center;font-size:14px;margin:6px 0"><input type="checkbox" style="width:auto"' + (p.merge ? ' checked' : '') + ' onchange="PENDING.merge=this.checked;showPreview(false)">겹치는 ' + nDup + '건은 하나로 합치기 (직접 넣은 이름·시간 유지)</label>';
     h += '<div class="row"><button class="btn pri" onclick="confirmPending()">' + ev.length + '건 넣기</button>'
        + (nUp ? '<label style="display:flex;gap:6px;align-items:center;font-size:14px"><input type="checkbox" style="width:auto"' + (p.withUp ? ' checked' : '') + ' onchange="PENDING.withUp=this.checked;showPreview(false)">업로드일도</label>' : '')
        + '<button class="btn sec" onclick="cancelPending()">취소</button></div>';
@@ -1806,9 +1843,18 @@ function confirmPending(){
   const p = PENDING; if(!p) return;
   if(p.kind === 'shoots'){
     // 같은 예약은 같은 번호(id)라 다시 붙여넣어도 겹치지 않고 촬영일·비용만 새로 맞춰짐
-    const ev = shootEventsOf(p);
+    if(p.merge === undefined) p.merge = true;
+    const ev = shootPlan(p); let nMerged = 0;
     ev.forEach(e => {
       const x = DB.items.find(i => i.id === e.id) || {id: e.id, type: 'event', time: null}; delete x.deleted;
+      // 겹치는 직접 일정과 합치기: 이름·시간·광고 표시·메모는 직접 넣은 쪽 유지, 엑셀과 연결된 일정 하나로 + 직접 일정은 지움
+      if(e.dup && p.merge){
+        const d = e.dup;
+        Object.assign(x, {type: 'event', date: e.date, time: d.time || e.time || null, title: d.title, note: e.note + (d.note ? '\n' + d.note : ''), src: 'xlsx', xTitle: e.title, xNote: e.note});
+        if(d.ad !== undefined) x.ad = d.ad;
+        upsert(x); removeItem(d.id); nMerged++; return;
+      }
+      if(e.time && !x.time) x.time = e.time; // 비고 시간: 앱에서 시간을 안 넣은 일정만
       // 앱에서 고친 건 지키기: 시간·광고 표시는 건드리지 않음, 제목은 앱에서 바꿨으면 유지, 메모는 엑셀 줄만 바꾸고 덧붙인 내용 유지
       const title = (!x.title || x.title === (x.xTitle || e.title)) ? e.title : x.title;
       let extra = String(x.note || '');
@@ -1818,7 +1864,7 @@ function confirmPending(){
       const note = e.note + (extra ? (e.note ? '\n' : '') + extra : '');
       Object.assign(x, {type: 'event', date: e.date, title, note, src: 'xlsx', xTitle: e.title, xNote: e.note}); upsert(x);
     });
-    toast('촬영 일정 ' + ev.length + '건 넣었어요');
+    toast('촬영 일정 ' + ev.length + '건 넣었어요' + (nMerged ? ' · ' + nMerged + '건은 직접 넣은 일정과 합침' : ''));
     cancelPending(true);
     return;
   }
