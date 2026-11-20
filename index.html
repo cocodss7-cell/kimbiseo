@@ -6,12 +6,12 @@
 <title>김비서</title>
 <meta name="description" content="음성으로 관리하는 나만의 일정·메모·D-day 비서">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="app-build-version" content="v10.22-year">
+<meta name="app-build-version" content="v10.23-sync-all">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<script>window.APP_BUILD = 'v10.22-year';</script>
+<script>window.APP_BUILD = 'v10.23-sync-all';</script>
 <style>
 :root{
   --deep:#0F2419; --yellow:#FFEB3B; --lgreen:#A5D6A7; --orange:#F57F17;
@@ -2212,6 +2212,13 @@ function mergeRemote(r){
   if(i < 0) DB.items.push(it);
   else if(it.updated > (DB.items[i].updated || 0)) DB.items[i] = it;
 }
+// v10.23: 기기마다 기록 수가 다를 때 — 이 기기 기록 전부 다시 올리고(서버가 더 최신이면 서버 것 유지) 서버 기록 전부 다시 받기
+async function syncAll(){
+  if(!SB || !SESSION){ toast('로그인해야 맞출 수 있어요'); return; }
+  DB.items.forEach(x => markDirty(x.id)); DB.lastPull = null; saveDB();
+  toast('전체 맞추는 중…'); await syncNow();
+  toast(syncErr || ('맞췄어요 — 일정 ' + events().length + '건')); if(document.getElementById('modal').classList.contains('show')) openSettings();
+}
 async function syncNow(){
   if(!SB || !SESSION || syncing) return;
   if(!navigator.onLine){ syncErr = '오프라인 — 연결되면 자동으로 맞춰요'; updateSyncBadge(); return; }
@@ -2276,7 +2283,8 @@ function accountHtml(){
   return h + '<div style="font-weight:700">' + esc(SESSION.user.email || '') + '</div>'
     + '<div class="muted" style="margin:4px 0 10px">마지막 동기화 ' + t + (DB.dirty.length ? ' · 올릴 것 ' + DB.dirty.length + '개' : '') + '</div>'
     + (syncErr ? '<div class="muted" style="color:var(--sun);margin-bottom:10px">' + esc(syncErr) + '</div>' : '')
-    + '<div class="row"><button class="btn sec sm" onclick="syncNow().then(openSettings)">지금 동기화</button><button class="btn sec sm" onclick="sbLogout()">로그아웃</button></div></div>';
+    + '<div class="muted" style="margin:4px 0 6px">이 기기 기록: 일정 ' + events().length + '건 · 메모 ' + memos().length + '건 — PC·폰 숫자가 다르면 [전체 맞추기]</div>'
+    + '<div class="row"><button class="btn sec sm" onclick="syncNow().then(openSettings)">지금 동기화</button><button class="btn sec sm" onclick="syncAll()">전체 맞추기</button><button class="btn sec sm" onclick="sbLogout()">로그아웃</button></div></div>';
 }
 async function sbLogin(){
   if(!SB) return;
